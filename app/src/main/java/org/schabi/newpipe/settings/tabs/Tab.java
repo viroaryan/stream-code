@@ -24,6 +24,7 @@ import org.schabi.newpipe.local.bookmark.BookmarkFragment;
 import org.schabi.newpipe.local.feed.FeedFragment;
 import org.schabi.newpipe.local.history.StatisticsPlaylistFragment;
 import org.schabi.newpipe.local.playlist.LocalPlaylistFragment;
+import org.schabi.newpipe.local.shorts.ShortsFragment;
 import org.schabi.newpipe.local.subscription.SubscriptionFragment;
 import org.schabi.newpipe.util.KioskTranslator;
 
@@ -282,8 +283,8 @@ public abstract class Tab {
         }
 
         @Override
-        public FeedFragment getFragment(final Context context) {
-            return FeedFragment.newShortsInstance();
+        public ShortsFragment getFragment(final Context context) {
+            return new ShortsFragment();
         }
 
         /**

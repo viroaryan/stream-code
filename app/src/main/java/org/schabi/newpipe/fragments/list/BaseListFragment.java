@@ -408,7 +408,8 @@ public abstract class BaseListFragment<I, N> extends BaseStateFragment<I>
         super.onCreateOptionsMenu(menu, inflater);
         final ActionBar supportActionBar = activity.getSupportActionBar();
         if (supportActionBar != null) {
-            supportActionBar.setDisplayShowTitleEnabled(true);
+            // Stream: main-screen pages keep the Stream logo instead of a title
+            supportActionBar.setDisplayShowTitleEnabled(!useAsFrontPage);
             supportActionBar.setDisplayHomeAsUpEnabled(!useAsFrontPage);
         }
     }

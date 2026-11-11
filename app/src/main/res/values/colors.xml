@@ -5,6 +5,8 @@
     <color name="defaultIconTint">@color/black</color>
 
     <color name="ic_launcher_background">#000000</color>
+    <!-- Stream brand -->
+    <color name="stream_rose">#E11D48</color>
 
     <color name="placeholder_background">#999999</color>
     <color name="placeholder_foreground">#6C6C6C</color>

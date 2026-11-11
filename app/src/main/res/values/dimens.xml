@@ -39,6 +39,8 @@
     <dimen name="shorts_card_min_width">150dp</dimen>
     <!-- Stream: You tab -->
     <dimen name="you_divider_margin">8dp</dimen>
+    <!-- Stream: width of a card in the Home Shorts shelf -->
+    <dimen name="home_shelf_card_width">150dp</dimen>
     <!-- Stream: bottom navigation height -->
     <dimen name="bottom_nav_height">56dp</dimen>
     <dimen name="video_item_grid_thumbnail_image_height">92dp</dimen>

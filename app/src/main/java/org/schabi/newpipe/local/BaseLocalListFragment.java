@@ -166,7 +166,8 @@ public abstract class BaseLocalListFragment<I, N> extends BaseStateFragment<I>
             return;
         }
 
-        supportActionBar.setDisplayShowTitleEnabled(true);
+        // Stream: main-screen pages keep the Stream logo instead of a title
+        supportActionBar.setDisplayShowTitleEnabled(!useAsFrontPage);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

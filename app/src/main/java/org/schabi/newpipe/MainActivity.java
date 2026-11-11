@@ -44,6 +44,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
+import androidx.core.widget.ImageViewCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentContainerView;
@@ -164,6 +165,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         setSupportActionBar(toolbarLayoutBinding.toolbar);
+        // Stream: the top bar takes the page background (the toolbar's own theme overlay would
+        // otherwise give it a grey one), and the logo keeps its own colours (no toolbar tint).
+        toolbarLayoutBinding.toolbar.setBackgroundColor(
+                ThemeHelper.resolveColorFromAttr(this, android.R.attr.windowBackground));
+        ImageViewCompat.setImageTintList(toolbarLayoutBinding.toolbarLogoImage, null);
         try {
             setupDrawer();
         } catch (final Exception e) {

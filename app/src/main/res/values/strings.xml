@@ -1038,4 +1038,7 @@
     <string name="home_tab_live">Live</string>
     <string name="home_tab_podcasts">Podcasts</string>
     <string name="home_tab_movies">Movies</string>
+    <string name="shorts_empty">No Shorts right now. Pull down to refresh.</string>
+    <string name="shorts_load_error">Shorts could not be loaded. Check your connection and pull down to refresh.</string>
+    <string name="home_tab_all">All</string>
 </resources>

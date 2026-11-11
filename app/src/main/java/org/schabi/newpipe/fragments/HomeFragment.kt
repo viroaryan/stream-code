@@ -95,9 +95,13 @@ class HomeFragment : Fragment() {
     }
 
     private fun createList(tab: HomeTab): Fragment = try {
-        KioskFragment.getInstance(ServiceList.YouTube.serviceId, tab.kioskId).apply {
-            // keep the Stream logo in the toolbar instead of the kiosk name
-            useAsFrontPage(true)
+        // keep the Stream logo in the toolbar instead of the list name
+        if (tab.kioskId == ALL) {
+            HomeFeedFragment().apply { useAsFrontPage(true) }
+        } else {
+            KioskFragment.getInstance(ServiceList.YouTube.serviceId, tab.kioskId).apply {
+                useAsFrontPage(true)
+            }
         }
     } catch (e: Exception) {
         Log.e(TAG, "Could not create kiosk ${tab.kioskId}", e)
@@ -110,7 +114,11 @@ class HomeFragment : Fragment() {
         private const val TAG = "HomeFragment"
         private const val KEY_SELECTED = "home_selected_tab"
 
+        /** Pseudo kiosk id of the mixed "All" feed, see [HomeFeedFragment]. */
+        private const val ALL = "stream_all"
+
         private val TABS = listOf(
+            HomeTab(ALL, R.string.home_tab_all),
             HomeTab("trending_music", R.string.home_tab_music),
             HomeTab("trending_gaming", R.string.home_tab_gaming),
             HomeTab("live", R.string.home_tab_live),
