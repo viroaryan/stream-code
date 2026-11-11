@@ -1,0 +1,29 @@
+.gradle/
+local.properties
+.DS_Store
+build/
+captures/
+.idea/
+*.iml
+*~
+.weblate
+.kotlin
+*.class
+app/debug/
+app/release/
+
+# vscode / eclipse files
+*.classpath
+*.project
+*.settings
+bin/
+.vscode/
+*.code-workspace
+
+# Stream: secrets, release artifacts and the separate website repo stay out of stream-code
+/updates/
+/website/
+*.jks
+*.keystore
+keystore.properties
+/.claude/
