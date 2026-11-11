@@ -107,8 +107,6 @@ open class App :
         StateSaver.init(this)
         initNotificationChannels()
 
-        ServiceHelper.initServices(this)
-
         // Initialize image loader
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         ImageStrategy.setPreferredImageQuality(

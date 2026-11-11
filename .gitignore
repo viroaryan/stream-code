@@ -27,3 +27,4 @@ bin/
 *.keystore
 keystore.properties
 /.claude/
+/research/

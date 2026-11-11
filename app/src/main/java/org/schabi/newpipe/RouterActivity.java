@@ -73,6 +73,7 @@ import org.schabi.newpipe.player.playqueue.SinglePlayQueue;
 import org.schabi.newpipe.util.ChannelTabHelper;
 import org.schabi.newpipe.util.Constants;
 import org.schabi.newpipe.util.DeviceUtils;
+import org.schabi.newpipe.util.ServiceHelper;
 import org.schabi.newpipe.util.ExtractorHelper;
 import org.schabi.newpipe.util.NavigationHelper;
 import org.schabi.newpipe.util.PermissionHelper;
@@ -232,6 +233,11 @@ public class RouterActivity extends AppCompatActivity {
                             currentUrl = url;
                         } else {
                             currentService = NewPipe.getService(currentServiceId);
+                        }
+
+                        // Stream is YouTube-only: links of other services are unsupported
+                        if (!ServiceHelper.isSupportedService(currentService.getServiceId())) {
+                            return false;
                         }
 
                         // return whether the url was found to be supported or not

@@ -106,6 +106,9 @@ public class SelectKioskFragment extends DialogFragment {
 
         SelectKioskAdapter() throws Exception {
             for (final StreamingService service : NewPipe.getServices()) {
+                if (!ServiceHelper.isSupportedService(service.getServiceId())) {
+                    continue; // Stream is YouTube-only
+                }
                 for (final String kioskId : service.getKioskList().getAvailableKiosks()) {
                     final String name = String.format(getString(R.string.service_kiosk_string),
                             service.getServiceInfo().getName(),
