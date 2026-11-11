@@ -64,6 +64,7 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
     private String youtubeRestrictedModeEnabledKey;
     private boolean mainTabsPositionBottom;
     private String mainTabsPositionKey;
+    private boolean showShortsSection;
 
     /*//////////////////////////////////////////////////////////////////////////
     // Fragment's LifeCycle
@@ -91,6 +92,7 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
         youtubeRestrictedModeEnabled = prefs.getBoolean(youtubeRestrictedModeEnabledKey, false);
         mainTabsPositionKey = getString(R.string.main_tabs_position_key);
         mainTabsPositionBottom = prefs.getBoolean(mainTabsPositionKey, false);
+        showShortsSection = Tab.ShortsTab.isEnabled(requireContext());
     }
 
     @Override
@@ -119,8 +121,11 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
 
         final boolean newYoutubeRestrictedModeEnabled =
                 prefs.getBoolean(youtubeRestrictedModeEnabledKey, false);
-        if (youtubeRestrictedModeEnabled != newYoutubeRestrictedModeEnabled || hasTabsChanged) {
+        final boolean newShowShortsSection = Tab.ShortsTab.isEnabled(requireContext());
+        if (youtubeRestrictedModeEnabled != newYoutubeRestrictedModeEnabled || hasTabsChanged
+                || showShortsSection != newShowShortsSection) {
             youtubeRestrictedModeEnabled = newYoutubeRestrictedModeEnabled;
+            showShortsSection = newShowShortsSection;
             setupTabs();
         }
 
@@ -188,6 +193,17 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
     private void setupTabs() {
         tabsList.clear();
         tabsList.addAll(tabsManager.getTabs());
+        if (!showShortsSection) {
+            // Stream: Shorts section turned off in settings
+            for (int i = tabsList.size() - 1; i >= 0; i--) {
+                if (tabsList.get(i).getTabId() == Tab.ShortsTab.ID) {
+                    tabsList.remove(i);
+                }
+            }
+            if (tabsList.isEmpty()) {
+                tabsList.add(Tab.Type.BLANK.getTab());
+            }
+        }
 
         if (pagerAdapter == null || !pagerAdapter.sameTabs(tabsList)) {
             pagerAdapter = new SelectedTabsPagerAdapter(requireContext(),

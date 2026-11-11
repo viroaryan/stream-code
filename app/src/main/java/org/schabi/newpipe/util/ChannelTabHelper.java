@@ -147,6 +147,13 @@ public final class ChannelTabHelper {
             return false;
         }
 
+        // Stream: shorts only show up in the Shorts section, so skip fetching them when it's off
+        if (ChannelTabs.SHORTS.equals(contentFilters.get(0))
+                && !sharedPreferences.getBoolean(
+                        context.getString(R.string.show_shorts_section_key), true)) {
+            return false;
+        }
+
         final Set<String> enabledTabs = sharedPreferences.getStringSet(
                 context.getString(R.string.feed_fetch_channel_tabs_key), null);
         if (enabledTabs == null) {

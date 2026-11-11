@@ -1013,4 +1013,8 @@
     <string name="return_youtube_dislike_privacy_policy_text">ReturnYouTubeDislike Security FAQ</string>
     <string name="return_youtube_dislike_home_page_url">https://returnyoutubedislike.com/</string>
     <string name="return_youtube_dislike_security_faq_url">https://www.returnyoutubedislike.com/faq/</string>
+    <!-- Stream: Shorts section -->
+    <string name="shorts_section_title">Shorts</string>
+    <string name="show_shorts_section_title">Shorts section</string>
+    <string name="show_shorts_section_summary">Show Shorts from your subscriptions in their own tab and keep them out of the regular feed</string>
 </resources>

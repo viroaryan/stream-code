@@ -6,6 +6,7 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceManager;
 
 import com.grack.nanojson.JsonObject;
 import com.grack.nanojson.JsonStringWriter;
@@ -165,7 +166,8 @@ public abstract class Tab {
         KIOSK(new KioskTab()),
         CHANNEL(new ChannelTab()),
         PLAYLIST(new PlaylistTab()),
-        FEEDGROUP(new FeedGroupTab());
+        FEEDGROUP(new FeedGroupTab()),
+        SHORTS(new ShortsTab());
 
         private final Tab tab;
 
@@ -257,6 +259,46 @@ public abstract class Tab {
         @Override
         public FeedFragment getFragment(final Context context) {
             return new FeedFragment();
+        }
+    }
+
+    /**
+     * Stream: the Shorts section, i.e. short-form content from all subscriptions.
+     * Hidden from the main screen when the "Shorts section" setting is off.
+     */
+    public static class ShortsTab extends Tab {
+        public static final int ID = 10;
+
+        @Override
+        public int getTabId() {
+            return ID;
+        }
+
+        @Override
+        public String getTabName(final Context context) {
+            return context.getString(R.string.shorts_section_title);
+        }
+
+        @DrawableRes
+        @Override
+        public int getTabIconRes(final Context context) {
+            return R.drawable.ic_shorts;
+        }
+
+        @Override
+        public FeedFragment getFragment(final Context context) {
+            return FeedFragment.newShortsInstance();
+        }
+
+        /**
+         * Whether the user wants the Shorts section (Settings → Content).
+         *
+         * @param context any context, used to read the preference
+         * @return true if the Shorts section is turned on (the default)
+         */
+        public static boolean isEnabled(final Context context) {
+            return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(
+                    context.getString(R.string.show_shorts_section_key), true);
         }
     }
 

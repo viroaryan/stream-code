@@ -62,7 +62,11 @@ data class StreamEntity(
     var uploadDate: OffsetDateTime? = null,
 
     @ColumnInfo(name = STREAM_IS_UPLOAD_DATE_APPROXIMATION)
-    var isUploadDateApproximation: Boolean? = null
+    var isUploadDateApproximation: Boolean? = null,
+
+    /** Whether this is short-form content (YouTube Shorts). Added in DB version 10. */
+    @ColumnInfo(name = STREAM_IS_SHORT, defaultValue = "0")
+    var isShort: Boolean = false
 ) : Serializable {
     @Ignore
     constructor(item: StreamInfoItem) : this(
@@ -71,7 +75,8 @@ data class StreamEntity(
         uploaderUrl = item.uploaderUrl,
         thumbnailUrl = ImageStrategy.imageListToDbUrl(item.thumbnails), viewCount = item.viewCount,
         textualUploadDate = item.textualUploadDate, uploadDate = item.uploadDate?.offsetDateTime(),
-        isUploadDateApproximation = item.uploadDate?.isApproximation
+        isUploadDateApproximation = item.uploadDate?.isApproximation,
+        isShort = item.isShortFormContent
     )
 
     @Ignore
@@ -81,7 +86,8 @@ data class StreamEntity(
         uploaderUrl = info.uploaderUrl,
         thumbnailUrl = ImageStrategy.imageListToDbUrl(info.thumbnails), viewCount = info.viewCount,
         textualUploadDate = info.textualUploadDate, uploadDate = info.uploadDate?.offsetDateTime(),
-        isUploadDateApproximation = info.uploadDate?.isApproximation
+        isUploadDateApproximation = info.uploadDate?.isApproximation,
+        isShort = info.isShortFormContent
     )
 
     @Ignore
@@ -108,6 +114,7 @@ data class StreamEntity(
         item.uploadDate = uploadDate?.let {
             DateWrapper(it, isUploadDateApproximation ?: false)
         }
+        item.isShortFormContent = isShort
 
         return item
     }
@@ -128,5 +135,6 @@ data class StreamEntity(
         const val STREAM_TEXTUAL_UPLOAD_DATE = "textual_upload_date"
         const val STREAM_UPLOAD_DATE = "upload_date"
         const val STREAM_IS_UPLOAD_DATE_APPROXIMATION = "is_upload_date_approximation"
+        const val STREAM_IS_SHORT = "is_short"
     }
 }

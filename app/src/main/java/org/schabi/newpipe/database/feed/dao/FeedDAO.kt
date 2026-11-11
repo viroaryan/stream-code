@@ -81,6 +81,11 @@ abstract class FeedDAO {
             OR s.upload_date IS NULL
             OR s.upload_date < :uploadDateBefore
         )
+        AND (
+            :shortsFilter = ${SHORTS_FILTER_ALL}
+            OR (:shortsFilter = ${SHORTS_FILTER_EXCLUDE} AND s.is_short = 0)
+            OR (:shortsFilter = ${SHORTS_FILTER_ONLY} AND s.is_short = 1)
+        )
 
         ORDER BY s.upload_date IS NULL DESC, s.upload_date DESC, s.uploader ASC
         LIMIT 500
@@ -90,7 +95,8 @@ abstract class FeedDAO {
         groupId: Long,
         includePlayed: Boolean,
         includePartiallyPlayed: Boolean,
-        uploadDateBefore: OffsetDateTime?
+        uploadDateBefore: OffsetDateTime?,
+        shortsFilter: Int
     ): Maybe<List<StreamWithState>>
 
     /**
@@ -234,4 +240,15 @@ abstract class FeedDAO {
         outdatedThreshold: OffsetDateTime,
         @NotificationMode notificationMode: Int
     ): Flowable<List<SubscriptionEntity>>
+
+    companion object {
+        /** [getStreams] shortsFilter: return every stream. */
+        const val SHORTS_FILTER_ALL = 0
+
+        /** [getStreams] shortsFilter: leave out short-form content (YouTube Shorts). */
+        const val SHORTS_FILTER_EXCLUDE = 1
+
+        /** [getStreams] shortsFilter: return only short-form content (YouTube Shorts). */
+        const val SHORTS_FILTER_ONLY = 2
+    }
 }

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 10,
-    "identityHash": "7591e8039faa74d8c0517dc867af9d3e",
+    "identityHash": "f88fdad9147e8d2a0829bc4656f92f4f",
     "entities": [
       {
         "tableName": "subscriptions",
@@ -23,32 +23,27 @@
           {
             "fieldPath": "url",
             "columnName": "url",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "name",
             "columnName": "name",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "avatarUrl",
             "columnName": "avatar_url",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "subscriberCount",
             "columnName": "subscriber_count",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "description",
             "columnName": "description",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "notificationMode",
@@ -74,8 +69,7 @@
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_subscriptions_service_id_url` ON `${TABLE_NAME}` (`service_id`, `url`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "search_history",
@@ -84,8 +78,7 @@
           {
             "fieldPath": "creationDate",
             "columnName": "creation_date",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "serviceId",
@@ -96,8 +89,7 @@
           {
             "fieldPath": "search",
             "columnName": "search",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "id",
@@ -122,12 +114,11 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_search_history_search` ON `${TABLE_NAME}` (`search`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "streams",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `service_id` INTEGER NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `stream_type` TEXT NOT NULL, `duration` INTEGER NOT NULL, `uploader` TEXT NOT NULL, `uploader_url` TEXT, `thumbnail_url` TEXT, `view_count` INTEGER, `textual_upload_date` TEXT, `upload_date` INTEGER, `is_upload_date_approximation` INTEGER)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `service_id` INTEGER NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `stream_type` TEXT NOT NULL, `duration` INTEGER NOT NULL, `uploader` TEXT NOT NULL, `uploader_url` TEXT, `thumbnail_url` TEXT, `view_count` INTEGER, `textual_upload_date` TEXT, `upload_date` INTEGER, `is_upload_date_approximation` INTEGER, `is_short` INTEGER NOT NULL DEFAULT 0)",
         "fields": [
           {
             "fieldPath": "uid",
@@ -174,38 +165,39 @@
           {
             "fieldPath": "uploaderUrl",
             "columnName": "uploader_url",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "thumbnailUrl",
             "columnName": "thumbnail_url",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "viewCount",
             "columnName": "view_count",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "textualUploadDate",
             "columnName": "textual_upload_date",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "uploadDate",
             "columnName": "upload_date",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "isUploadDateApproximation",
             "columnName": "is_upload_date_approximation",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isShort",
+            "columnName": "is_short",
             "affinity": "INTEGER",
-            "notNull": false
+            "notNull": true,
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -225,8 +217,7 @@
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_streams_service_id_url` ON `${TABLE_NAME}` (`service_id`, `url`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "stream_history",
@@ -306,7 +297,6 @@
             "stream_id"
           ]
         },
-        "indices": [],
         "foreignKeys": [
           {
             "table": "streams",
@@ -334,8 +324,7 @@
           {
             "fieldPath": "name",
             "columnName": "name",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "isThumbnailPermanent",
@@ -361,9 +350,7 @@
           "columnNames": [
             "uid"
           ]
-        },
-        "indices": [],
-        "foreignKeys": []
+        }
       },
       {
         "tableName": "playlist_stream_join",
@@ -458,28 +445,24 @@
             "notNull": true
           },
           {
-            "fieldPath": "name",
+            "fieldPath": "orderingName",
             "columnName": "name",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "url",
             "columnName": "url",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "thumbnailUrl",
             "columnName": "thumbnail_url",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "uploader",
             "columnName": "uploader",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "displayIndex",
@@ -490,8 +473,7 @@
           {
             "fieldPath": "streamCount",
             "columnName": "stream_count",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -511,8 +493,7 @@
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_remote_playlists_service_id_url` ON `${TABLE_NAME}` (`service_id`, `url`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "feed",
@@ -619,8 +600,7 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_feed_group_sort_order` ON `${TABLE_NAME}` (`sort_order`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "feed_group_subscription_join",
@@ -695,8 +675,7 @@
           {
             "fieldPath": "lastUpdated",
             "columnName": "last_updated",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -705,7 +684,6 @@
             "subscription_id"
           ]
         },
-        "indices": [],
         "foreignKeys": [
           {
             "table": "subscriptions",
@@ -721,10 +699,9 @@
         ]
       }
     ],
-    "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7591e8039faa74d8c0517dc867af9d3e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f88fdad9147e8d2a0829bc4656f92f4f')"
     ]
   }
 }

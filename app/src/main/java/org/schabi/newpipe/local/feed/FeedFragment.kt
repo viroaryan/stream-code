@@ -57,6 +57,7 @@ import java.time.OffsetDateTime
 import java.util.function.Consumer
 import org.schabi.newpipe.NewPipeDatabase
 import org.schabi.newpipe.R
+import org.schabi.newpipe.database.feed.dao.FeedDAO
 import org.schabi.newpipe.database.feed.model.FeedGroupEntity
 import org.schabi.newpipe.database.subscription.SubscriptionEntity
 import org.schabi.newpipe.databinding.FragmentFeedBinding
@@ -76,9 +77,11 @@ import org.schabi.newpipe.ktx.slideUp
 import org.schabi.newpipe.local.feed.item.StreamItem
 import org.schabi.newpipe.local.feed.service.FeedLoadService
 import org.schabi.newpipe.local.subscription.SubscriptionManager
+import org.schabi.newpipe.player.playqueue.SinglePlayQueue
 import org.schabi.newpipe.util.DeviceUtils
 import org.schabi.newpipe.util.Localization
 import org.schabi.newpipe.util.NavigationHelper
+import org.schabi.newpipe.util.ThemeHelper.getGridSpanCount
 import org.schabi.newpipe.util.ThemeHelper.getGridSpanCountStreams
 import org.schabi.newpipe.util.ThemeHelper.getItemViewMode
 import org.schabi.newpipe.util.ThemeHelper.resolveDrawable
@@ -98,6 +101,9 @@ class FeedFragment : BaseStateFragment<FeedState>() {
 
     private var groupId = FeedGroupEntity.GROUP_ALL_ID
     private var groupName = ""
+
+    /** Stream: true when this fragment is the Shorts section (only short-form content). */
+    private var shortsOnly = false
     private var oldestSubscriptionUpdate: OffsetDateTime? = null
 
     private lateinit var groupAdapter: GroupieAdapter
@@ -118,6 +124,7 @@ class FeedFragment : BaseStateFragment<FeedState>() {
         groupId = arguments?.getLong(KEY_GROUP_ID, FeedGroupEntity.GROUP_ALL_ID)
             ?: FeedGroupEntity.GROUP_ALL_ID
         groupName = arguments?.getString(KEY_GROUP_NAME) ?: ""
+        shortsOnly = arguments?.getBoolean(KEY_SHORTS_ONLY, false) ?: false
 
         onSettingsChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (getString(R.string.list_view_mode_key).equals(key)) {
@@ -137,7 +144,11 @@ class FeedFragment : BaseStateFragment<FeedState>() {
         _feedBinding = FragmentFeedBinding.bind(rootView)
         super.onViewCreated(rootView, savedInstanceState)
 
-        val factory = FeedViewModel.getFactory(requireContext(), groupId)
+        val factory = FeedViewModel.getFactory(
+            requireContext(),
+            groupId,
+            if (shortsOnly) FeedDAO.SHORTS_FILTER_ONLY else FeedDAO.SHORTS_FILTER_EXCLUDE
+        )
         viewModel = ViewModelProvider(this, factory)[FeedViewModel::class.java]
         viewModel.stateLiveData.observe(viewLifecycleOwner) { it?.let(::handleResult) }
 
@@ -184,7 +195,20 @@ class FeedFragment : BaseStateFragment<FeedState>() {
 
     private fun setupListViewMode() {
         // does everything needed to setup the layouts for grid or list modes
-        groupAdapter.spanCount = if (shouldUseGridLayout(context)) getGridSpanCountStreams(context) else 1
+        groupAdapter.spanCount = when {
+            // portrait cards: at least two per row, more on wide screens
+            shortsOnly -> maxOf(
+                2,
+                getGridSpanCount(
+                    requireContext(),
+                    resources.getDimensionPixelSize(R.dimen.shorts_card_min_width)
+                )
+            )
+
+            shouldUseGridLayout(context) -> getGridSpanCountStreams(context)
+
+            else -> 1
+        }
         feedBinding.itemsList.layoutManager = GridLayoutManager(requireContext(), groupAdapter.spanCount).apply {
             spanSizeLookup = groupAdapter.spanSizeLookup
         }
@@ -208,7 +232,9 @@ class FeedFragment : BaseStateFragment<FeedState>() {
         super.onCreateOptionsMenu(menu, inflater)
 
         activity.supportActionBar?.setDisplayShowTitleEnabled(true)
-        activity.supportActionBar?.setTitle(R.string.fragment_feed_title)
+        activity.supportActionBar?.setTitle(
+            if (shortsOnly) R.string.shorts_section_title else R.string.fragment_feed_title
+        )
         activity.supportActionBar?.subtitle = groupName
 
         inflater.inflate(R.menu.menu_feed_fragment, menu)
@@ -386,7 +412,19 @@ class FeedFragment : BaseStateFragment<FeedState>() {
 
     private val listenerStreamItem = object : OnItemClickListener, OnItemLongClickListener {
         override fun onItemClick(item: Item<*>, view: View) {
-            if (item is StreamItem && !isRefreshing) {
+            if (item is StreamItem && !isRefreshing && shortsOnly) {
+                // Play the tapped short and queue the rest, so "next" keeps going
+                val shorts = (0 until groupAdapter.itemCount)
+                    .mapNotNull { groupAdapter.getItem(it) as? StreamItem }
+                    .map { it.streamWithState.stream.toStreamInfoItem() }
+                val index = (0 until groupAdapter.itemCount)
+                    .indexOfFirst { groupAdapter.getItem(it) === item }
+                    .coerceAtLeast(0)
+                NavigationHelper.playOnMainPlayer(
+                    activity,
+                    SinglePlayQueue(shorts, index.coerceAtMost(shorts.lastIndex))
+                )
+            } else if (item is StreamItem && !isRefreshing) {
                 val stream = item.streamWithState.stream
                 NavigationHelper.openVideoDetailFragment(
                     requireContext(),
@@ -411,10 +449,14 @@ class FeedFragment : BaseStateFragment<FeedState>() {
 
     @SuppressLint("StringFormatMatches")
     private fun handleLoadedState(loadedState: FeedState.LoadedState) {
-        val itemVersion = when (getItemViewMode(requireContext())) {
-            ItemViewMode.GRID -> StreamItem.ItemVersion.GRID
-            ItemViewMode.CARD -> StreamItem.ItemVersion.CARD
-            else -> StreamItem.ItemVersion.NORMAL
+        val itemVersion = when {
+            shortsOnly -> StreamItem.ItemVersion.SHORT
+
+            else -> when (getItemViewMode(requireContext())) {
+                ItemViewMode.GRID -> StreamItem.ItemVersion.GRID
+                ItemViewMode.CARD -> StreamItem.ItemVersion.CARD
+                else -> StreamItem.ItemVersion.NORMAL
+            }
         }
         loadedState.items.forEach { it.itemVersion = itemVersion }
 
@@ -686,11 +728,23 @@ class FeedFragment : BaseStateFragment<FeedState>() {
     companion object {
         const val KEY_GROUP_ID = "ARG_GROUP_ID"
         const val KEY_GROUP_NAME = "ARG_GROUP_NAME"
+        const val KEY_SHORTS_ONLY = "ARG_SHORTS_ONLY"
 
         @JvmStatic
         fun newInstance(groupId: Long = FeedGroupEntity.GROUP_ALL_ID, groupName: String? = null): FeedFragment {
             val feedFragment = FeedFragment()
             feedFragment.arguments = bundleOf(KEY_GROUP_ID to groupId, KEY_GROUP_NAME to groupName)
+            return feedFragment
+        }
+
+        /** Stream: the Shorts section, i.e. short-form content from all subscriptions. */
+        @JvmStatic
+        fun newShortsInstance(): FeedFragment {
+            val feedFragment = FeedFragment()
+            feedFragment.arguments = bundleOf(
+                KEY_GROUP_ID to FeedGroupEntity.GROUP_ALL_ID,
+                KEY_SHORTS_ONLY to true
+            )
             return feedFragment
         }
     }

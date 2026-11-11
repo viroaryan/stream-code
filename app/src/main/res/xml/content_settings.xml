@@ -82,6 +82,14 @@
         app:singleLineTitle="false"
         app:iconSpaceReserved="false" />
 
+    <SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:key="@string/show_shorts_section_key"
+        android:summary="@string/show_shorts_section_summary"
+        android:title="@string/show_shorts_section_title"
+        app:singleLineTitle="false"
+        app:iconSpaceReserved="false" />
+
     <MultiSelectListPreference
         android:key="@string/show_search_suggestions_key"
         android:summary="@string/show_search_suggestions_summary"

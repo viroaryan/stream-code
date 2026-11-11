@@ -43,7 +43,7 @@ abstract class StreamDAO : BasicDAO<StreamEntity> {
 
     @Query(
         """
-        SELECT uid, stream_type, textual_upload_date, upload_date, is_upload_date_approximation, duration 
+        SELECT uid, stream_type, textual_upload_date, upload_date, is_upload_date_approximation, duration, is_short
         FROM streams WHERE url = :url AND service_id = :serviceId
         """
     )
@@ -89,6 +89,10 @@ abstract class StreamDAO : BasicDAO<StreamEntity> {
         val existentMinimalStream = getMinimalStreamForCompare(newerStream.serviceId, newerStream.url)
             ?: error("Stream cannot be null just after insertion.")
         newerStream.uid = existentMinimalStream.uid
+
+        // Once a stream is known to be a short, keep it that way: sources such as the play
+        // queue or history don't know about short-form content and would reset the flag.
+        newerStream.isShort = newerStream.isShort || existentMinimalStream.isShort
 
         if (!StreamTypeUtil.isLiveStream(newerStream.streamType)) {
             // Use the existent upload date if the newer stream does not have a better precision
@@ -143,6 +147,9 @@ abstract class StreamDAO : BasicDAO<StreamEntity> {
         var isUploadDateApproximation: Boolean? = null,
 
         @ColumnInfo(name = StreamEntity.STREAM_DURATION)
-        var duration: Long
+        var duration: Long,
+
+        @ColumnInfo(name = StreamEntity.STREAM_IS_SHORT)
+        var isShort: Boolean = false
     )
 }

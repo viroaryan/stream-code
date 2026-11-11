@@ -18,6 +18,7 @@ import java.time.OffsetDateTime
 import java.util.concurrent.TimeUnit
 import org.schabi.newpipe.App
 import org.schabi.newpipe.R
+import org.schabi.newpipe.database.feed.dao.FeedDAO
 import org.schabi.newpipe.database.feed.model.FeedGroupEntity
 import org.schabi.newpipe.database.stream.StreamWithState
 import org.schabi.newpipe.local.feed.item.StreamItem
@@ -33,7 +34,8 @@ class FeedViewModel(
     groupId: Long = FeedGroupEntity.GROUP_ALL_ID,
     initialShowPlayedItems: Boolean,
     initialShowPartiallyPlayedItems: Boolean,
-    initialShowFutureItems: Boolean
+    initialShowFutureItems: Boolean,
+    private val shortsFilter: Int = FeedDAO.SHORTS_FILTER_EXCLUDE
 ) : ViewModel() {
     private val feedDatabaseManager = FeedDatabaseManager(application)
 
@@ -81,7 +83,7 @@ class FeedViewModel(
         .map { (event, showPlayedItems, showPartiallyPlayedItems, showFutureItems, notLoadedCount, oldestUpdate) ->
             val streamItems = if (event is SuccessResultEvent || event is IdleEvent) {
                 feedDatabaseManager
-                    .getStreams(groupId, showPlayedItems, showPartiallyPlayedItems, showFutureItems)
+                    .getStreams(groupId, showPlayedItems, showPartiallyPlayedItems, showFutureItems, shortsFilter)
                     .blockingGet(arrayListOf())
             } else {
                 arrayListOf()
@@ -163,7 +165,11 @@ class FeedViewModel(
         private fun getShowFutureItemsFromPreferences(context: Context) = PreferenceManager.getDefaultSharedPreferences(context)
             .getBoolean(context.getString(R.string.feed_show_future_items_key), true)
 
-        fun getFactory(context: Context, groupId: Long) = viewModelFactory {
+        fun getFactory(
+            context: Context,
+            groupId: Long,
+            shortsFilter: Int = FeedDAO.SHORTS_FILTER_EXCLUDE
+        ) = viewModelFactory {
             initializer {
                 FeedViewModel(
                     App.instance,
@@ -171,7 +177,8 @@ class FeedViewModel(
                     // Read initial value from preferences
                     getShowPlayedItemsFromPreferences(context.applicationContext),
                     getShowPartiallyPlayedItemsFromPreferences(context.applicationContext),
-                    getShowFutureItemsFromPreferences(context.applicationContext)
+                    getShowFutureItemsFromPreferences(context.applicationContext),
+                    shortsFilter
                 )
             }
         }

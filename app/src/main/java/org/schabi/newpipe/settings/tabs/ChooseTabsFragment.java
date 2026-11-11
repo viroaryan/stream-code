@@ -258,6 +258,12 @@ public class ChooseTabsFragment extends Fragment {
                             getString(R.string.feed_group_page_summary),
                             tab.getTabIconRes(context)));
                     break;
+                case SHORTS:
+                    // offered only while the Shorts section is turned on
+                    if (Tab.ShortsTab.isEnabled(context) && !tabList.contains(tab)) {
+                        returnList.add(new ChooseTabListItem(context, tab));
+                    }
+                    break;
                 default:
                     if (!tabList.contains(tab)) {
                         returnList.add(new ChooseTabListItem(context, tab));

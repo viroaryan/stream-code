@@ -12,12 +12,14 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import org.schabi.newpipe.MainActivity.DEBUG
 import org.schabi.newpipe.NewPipeDatabase
+import org.schabi.newpipe.database.feed.dao.FeedDAO
 import org.schabi.newpipe.database.feed.model.FeedEntity
 import org.schabi.newpipe.database.feed.model.FeedGroupEntity
 import org.schabi.newpipe.database.feed.model.FeedLastUpdatedEntity
 import org.schabi.newpipe.database.stream.StreamWithState
 import org.schabi.newpipe.database.stream.model.StreamEntity
 import org.schabi.newpipe.database.subscription.NotificationMode
+import org.schabi.newpipe.extractor.localization.DateWrapper
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.stream.StreamType
 import org.schabi.newpipe.local.subscription.FeedGroupIcon
@@ -44,13 +46,15 @@ class FeedDatabaseManager(context: Context) {
         groupId: Long,
         includePlayedStreams: Boolean,
         includePartiallyPlayedStreams: Boolean,
-        includeFutureStreams: Boolean
+        includeFutureStreams: Boolean,
+        shortsFilter: Int = FeedDAO.SHORTS_FILTER_EXCLUDE
     ): Maybe<List<StreamWithState>> {
         return feedTable.getStreams(
             groupId,
             includePlayedStreams,
             includePartiallyPlayedStreams,
-            if (includeFutureStreams) null else OffsetDateTime.now()
+            if (includeFutureStreams) null else OffsetDateTime.now(),
+            shortsFilter
         )
     }
 
@@ -85,12 +89,25 @@ class FeedDatabaseManager(context: Context) {
         items: List<StreamInfoItem>,
         oldestAllowedDate: OffsetDateTime = FEED_OLDEST_ALLOWED_DATE
     ) {
+        // Shorts from a channel's Shorts tab come without any upload date. Give them an
+        // approximate "first seen" date instead (newest first, one second apart to keep the
+        // channel's order) so they can be stored, sorted and expire like other feed items.
+        // Existing streams keep their stored date, see StreamDAO.compareAndUpdateStream().
+        val now = OffsetDateTime.now(ZoneOffset.UTC)
+        var undatedShortIndex = 0L
+
         val itemsToInsert = items.mapNotNull { stream ->
             val uploadDate = stream.uploadDate
 
             when {
                 uploadDate == null && stream.streamType == StreamType.LIVE_STREAM -> stream
+
+                uploadDate == null && stream.isShortFormContent -> stream.apply {
+                    this.uploadDate = DateWrapper(now.minusSeconds(undatedShortIndex++), true)
+                }
+
                 uploadDate != null && uploadDate.offsetDateTime() >= oldestAllowedDate -> stream
+
                 else -> null
             }
         }

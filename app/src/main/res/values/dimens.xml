@@ -35,6 +35,8 @@
     <dimen name="video_item_search_avatar_left_margin">27dp</dimen>
     <dimen name="video_item_search_avatar_right_margin">33dp</dimen>
     <dimen name="video_item_grid_thumbnail_image_width">164dp</dimen>
+    <!-- Stream: minimum width of a portrait card in the Shorts section -->
+    <dimen name="shorts_card_min_width">150dp</dimen>
     <dimen name="video_item_grid_thumbnail_image_height">92dp</dimen>
 
     <dimen name="channel_item_card_thumbnail_image_size">100dp</dimen>

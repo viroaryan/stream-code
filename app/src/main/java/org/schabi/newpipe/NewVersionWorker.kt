@@ -95,12 +95,29 @@ class NewVersionWorker(
             }
         }
 
-        // Make a network request to get latest NewPipe data.
-        val response = DownloaderImpl.getInstance().get(GITHUB_RELEASES_API_URL)
-        handleResponse(response)
+        // Ask Stream's website first; GitHub is the fallback. Some networks block GitHub's
+        // file host or hit its API rate limit, while the website serves the APK itself.
+        var lastError: IOException? = null
+        for (url in UPDATE_SOURCES) {
+            try {
+                val response = DownloaderImpl.getInstance().get(url)
+                if (response.responseCode() in 200..299 && handleResponse(response, url)) {
+                    return
+                }
+            } catch (e: IOException) {
+                lastError = e
+                if (DEBUG) {
+                    Log.w(TAG, "Update source failed: $url", e)
+                }
+            }
+        }
+        lastError?.let { throw it }
     }
 
-    private fun handleResponse(response: Response) {
+    /**
+     * @return true if the response described a release (whether or not it is newer)
+     */
+    private fun handleResponse(response: Response, sourceUrl: String): Boolean {
         val prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         try {
             // Store a timestamp which needs to be exceeded,
@@ -122,9 +139,9 @@ class NewVersionWorker(
             if (versionName.isNullOrBlank()) {
                 // e.g. the repo has no release yet (GitHub answers with an error object)
                 if (DEBUG) {
-                    Log.w(TAG, "No release found at $GITHUB_RELEASES_API_URL")
+                    Log.w(TAG, "No release found at $sourceUrl")
                 }
-                return
+                return false
             }
             // Prefer the first .apk asset; fall back to the release page itself.
             val assets = jObj.getArray("assets")
@@ -140,10 +157,12 @@ class NewVersionWorker(
                 versionName,
                 apkLocationUrl ?: jObj.getString("html_url")
             )
+            return true
         } catch (e: JsonParserException) {
             if (DEBUG) {
-                Log.w(TAG, "Invalid json", e)
+                Log.w(TAG, "Invalid json from $sourceUrl", e)
             }
+            return false
         }
     }
 
@@ -152,7 +171,7 @@ class NewVersionWorker(
             checkNewVersion()
             Result.success()
         } catch (e: IOException) {
-            Log.w(TAG, "Could not fetch NewPipe API: probably network problem", e)
+            Log.w(TAG, "Could not fetch any update source: probably network problem", e)
             Result.failure()
         } catch (e: ReCaptchaException) {
             Log.e(TAG, "ReCaptchaException should never happen here.", e)
@@ -165,6 +184,10 @@ class NewVersionWorker(
         private val TAG = NewVersionWorker::class.java.simpleName
         private const val GITHUB_RELEASES_API_URL =
             "https://api.github.com/repos/${BuildConfig.GITHUB_REPO}/releases/latest"
+
+        /** Same shape as GitHub's "latest release" JSON, published by updates/release.ps1. */
+        private const val WEBSITE_LATEST_URL = "https://stream.arivna.com/apk/latest.json"
+        private val UPDATE_SOURCES = listOf(WEBSITE_LATEST_URL, GITHUB_RELEASES_API_URL)
         private const val IS_MANUAL = "isManual"
 
         @JvmStatic

@@ -42,13 +42,15 @@ data class StreamItem(
 
     override fun getId(): Long = stream.uid
 
-    enum class ItemVersion { NORMAL, MINI, GRID, CARD }
+    /** [SHORT] is Stream's portrait card used by the Shorts section. */
+    enum class ItemVersion { NORMAL, MINI, GRID, CARD, SHORT }
 
     override fun getLayout(): Int = when (itemVersion) {
         ItemVersion.NORMAL -> R.layout.list_stream_item
         ItemVersion.MINI -> R.layout.list_stream_mini_item
         ItemVersion.GRID -> R.layout.list_stream_grid_item
         ItemVersion.CARD -> R.layout.list_stream_card_item
+        ItemVersion.SHORT -> R.layout.list_stream_short_item
     }
 
     override fun initializeViewBinding(view: View) = ListStreamItemBinding.bind(view)
@@ -126,6 +128,10 @@ data class StreamItem(
                 else -> Localization.shortViewCount(context, viewCount)
             }
         }
+        if (itemVersion == ItemVersion.SHORT && stream.isUploadDateApproximation == true) {
+            // Shorts usually only have a "first seen" date, which would be misleading here
+            return viewsAndDate
+        }
         val uploadDate = getFormattedRelativeUploadDate(context)
         return when {
             !TextUtils.isEmpty(uploadDate) -> when {
@@ -156,6 +162,6 @@ data class StreamItem(
     }
 
     override fun getSpanSize(spanCount: Int, position: Int): Int {
-        return if (itemVersion == ItemVersion.GRID) 1 else spanCount
+        return if (itemVersion == ItemVersion.GRID || itemVersion == ItemVersion.SHORT) 1 else spanCount
     }
 }
