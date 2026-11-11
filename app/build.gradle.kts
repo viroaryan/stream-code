@@ -107,6 +107,9 @@ configure<ApplicationExtension> {
         lintConfig = file("lint.xml")
         // Continue the debug build even when errors are found
         abortOnError = false
+        // Some inherited translations (e.g. values-sv) carry strings that were removed
+        // from the default locale; they are unused and harmless, so don't block releases.
+        disable += "ExtraTranslation"
     }
 
     compileOptions {
