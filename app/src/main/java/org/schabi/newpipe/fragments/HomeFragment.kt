@@ -97,7 +97,7 @@ class HomeFragment : Fragment() {
     private fun createList(tab: HomeTab): Fragment = try {
         // keep the Stream logo in the toolbar instead of the list name
         if (tab.kioskId == ALL) {
-            HomeFeedFragment().apply { useAsFrontPage(true) }
+            HomeFeedFragment()
         } else {
             KioskFragment.getInstance(ServiceList.YouTube.serviceId, tab.kioskId).apply {
                 useAsFrontPage(true)
@@ -118,7 +118,7 @@ class HomeFragment : Fragment() {
         private const val ALL = "stream_all"
 
         private val TABS = listOf(
-            HomeTab(ALL, R.string.home_tab_all),
+            HomeTab(ALL, R.string.home_tab_for_you),
             HomeTab("trending_music", R.string.home_tab_music),
             HomeTab("trending_gaming", R.string.home_tab_gaming),
             HomeTab("live", R.string.home_tab_live),

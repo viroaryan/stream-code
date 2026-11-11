@@ -338,6 +338,7 @@
     <!-- Main-Tabs Position -->
     <string name="main_tabs_position_key">main_tabs_position</string>
     <string name="show_shorts_section_key">show_shorts_section</string>
+    <string name="stream_about_key">stream_about</string>
 
     <!-- Content & History -->
     <string name="show_channel_tabs_key">channel_tabs</string>

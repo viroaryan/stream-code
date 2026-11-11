@@ -1041,4 +1041,41 @@
     <string name="shorts_empty">No Shorts right now. Pull down to refresh.</string>
     <string name="shorts_load_error">Shorts could not be loaded. Check your connection and pull down to refresh.</string>
     <string name="home_tab_all">All</string>
+    <!-- Stream Pulse feed -->
+    <string name="home_tab_for_you">For you</string>
+    <string name="home_feed_empty">Nothing to show yet. Pull down to refresh.</string>
+    <string name="home_feed_error">The feed could not be loaded. Check your connection and pull down to refresh.</string>
+    <string name="feed_not_interested">Not interested</string>
+    <string name="feed_dont_recommend_channel">Don\'t recommend channel</string>
+    <string name="feed_hidden_video">Got it, you\'ll see less like this</string>
+    <string name="feed_hidden_channel">You won\'t see this channel in your feed</string>
+    <!-- Stream: settings home -->
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_video_audio">Video and audio preferences</string>
+    <string name="settings_section_stream">Stream</string>
+    <string name="settings_general_title">General</string>
+    <string name="settings_general_summary">Theme, layout, main screen</string>
+    <string name="settings_content_title">Languages and content</string>
+    <string name="settings_content_summary">Country, language, Shorts, feed</string>
+    <string name="settings_history_title">Manage all history</string>
+    <string name="settings_quality_title">Quality and playback</string>
+    <string name="settings_quality_summary">Resolution, background play, gestures</string>
+    <string name="settings_sponsorblock_title">Skip sponsors</string>
+    <string name="settings_sponsorblock_summary">SponsorBlock: skip ads read by creators</string>
+    <string name="settings_dislikes_title">Dislikes</string>
+    <string name="settings_dislikes_summary">Return YouTube Dislike</string>
+    <string name="settings_about_summary">Version, updates and credits</string>
+    <!-- Stream: About screen -->
+    <string name="about_tagline">YouTube, your way. No ads, no tracking.</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_update_hint">Updates come from stream.arivna.com</string>
+    <string name="about_check_updates">Check for updates</string>
+    <string name="about_checking">Checking…</string>
+    <string name="about_whats_new">What\'s new</string>
+    <string name="about_website">Website</string>
+    <string name="about_source_code">Source code</string>
+    <string name="about_privacy">Privacy</string>
+    <string name="about_made_by">Made by Abhiraj Aryan · Bihar, India</string>
+    <string name="about_based_on">Free and open source (GPL-3.0). Built on NewPipe and Tubular.</string>
+    <string name="about_tab_title">About</string>
 </resources>

@@ -380,7 +380,8 @@ public final class ThemeHelper {
             if (useGrid) {
                 result = ItemViewMode.GRID;
             } else {
-                result = ItemViewMode.LIST;
+                // Stream: big full-width cards on phones, like YouTube
+                result = ItemViewMode.CARD;
             }
         }
         return result;

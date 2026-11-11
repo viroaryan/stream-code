@@ -6,9 +6,11 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
+import androidx.preference.Preference;
 
 import org.schabi.newpipe.MainActivity;
 import org.schabi.newpipe.R;
+import org.schabi.newpipe.util.NavigationHelper;
 
 public class MainSettingsFragment extends BasePreferenceFragment {
     public static final boolean DEBUG = MainActivity.DEBUG;
@@ -21,11 +23,19 @@ public class MainSettingsFragment extends BasePreferenceFragment {
 
         setHasOptionsMenu(true); // Otherwise onCreateOptionsMenu is not called
 
-        // Hide debug preferences in RELEASE build variant
+        // Hide debug preferences in RELEASE build variant (it sits inside a category)
         if (!DEBUG) {
-            getPreferenceScreen().removePreference(
-                    requirePreference(R.string.debug_pref_screen_key));
+            final Preference debug = requirePreference(R.string.debug_pref_screen_key);
+            if (debug.getParent() != null) {
+                debug.getParent().removePreference(debug);
+            }
         }
+
+        // Stream: "About Stream" opens the about screen
+        requirePreference(R.string.stream_about_key).setOnPreferenceClickListener(p -> {
+            NavigationHelper.openAbout(requireContext());
+            return true;
+        });
     }
 
     @Override

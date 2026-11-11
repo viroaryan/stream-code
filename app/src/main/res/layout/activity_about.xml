@@ -12,13 +12,15 @@
         android:layout_height="wrap_content"
         android:paddingTop="@dimen/appbar_padding_top"
         android:theme="@style/ThemeOverlay.AppCompat.DayNight.ActionBar"
+        android:background="?attr/streamBarColor"
+        app:elevation="0dp"
         app:popupTheme="@style/ThemeOverlay.AppCompat.DayNight.ActionBar">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/about_toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
+            android:background="?attr/streamBarColor"
             android:theme="@style/ToolbarTheme"
             app:layout_scrollFlags="scroll|enterAlways" />
 
@@ -26,8 +28,11 @@
             android:id="@+id/about_tabLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:tabTextColor="@color/white"
-            app:tabIndicatorColor="@color/white" />
+            android:background="?attr/streamBarColor"
+            app:tabSelectedTextColor="?attr/actionColor"
+            app:tabTextAppearance="@style/StreamHomeTabText"
+            app:tabTextColor="?attr/actionColor"
+            app:tabIndicatorColor="@color/stream_rose" />
 
     </com.google.android.material.appbar.AppBarLayout>
 

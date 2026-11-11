@@ -5,7 +5,7 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -13,9 +13,11 @@ import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.google.android.material.tabs.TabLayoutMediator
 import org.schabi.newpipe.BuildConfig
+import org.schabi.newpipe.NewVersionWorker
 import org.schabi.newpipe.R
 import org.schabi.newpipe.databinding.ActivityAboutBinding
 import org.schabi.newpipe.databinding.FragmentAboutBinding
+import org.schabi.newpipe.databinding.ItemAboutRowBinding
 import org.schabi.newpipe.util.ThemeHelper
 import org.schabi.newpipe.util.external_communication.ShareUtils
 
@@ -56,9 +58,11 @@ class AboutActivity : AppCompatActivity() {
      * A placeholder fragment containing a simple view.
      */
     class AboutFragment : Fragment() {
-        private fun Button.openLink(@StringRes url: Int) {
-            setOnClickListener {
-                ShareUtils.openUrlInApp(context, requireContext().getString(url))
+        private fun ItemAboutRowBinding.setup(@DrawableRes icon: Int, @StringRes title: Int, @StringRes url: Int) {
+            aboutRowIcon.setImageResource(icon)
+            aboutRowTitle.setText(title)
+            root.setOnClickListener {
+                ShareUtils.openUrlInApp(requireContext(), requireContext().getString(url))
             }
         }
 
@@ -68,12 +72,19 @@ class AboutActivity : AppCompatActivity() {
             savedInstanceState: Bundle?
         ): View {
             FragmentAboutBinding.inflate(inflater, container, false).apply {
-                aboutAppVersion.text = BuildConfig.VERSION_NAME
-                aboutGithubLink.openLink(R.string.github_url)
-                aboutDonationLink.openLink(R.string.donation_url)
-                aboutWebsiteLink.openLink(R.string.website_url)
-                aboutPrivacyPolicyLink.openLink(R.string.privacy_policy_url)
-                faqLink.openLink(R.string.faq_url)
+                aboutAppVersion.text = getString(R.string.about_version, BuildConfig.VERSION_NAME)
+                aboutCheckUpdates.setOnClickListener {
+                    // asks stream.arivna.com (then GitHub); shows a toast or an update notification
+                    NewVersionWorker.enqueueNewVersionCheckingWork(requireContext(), true)
+                    aboutUpdateStatus.setText(R.string.about_checking)
+                }
+                aboutRowChangelog.setup(R.drawable.ic_campaign, R.string.about_whats_new, R.string.changelog_url)
+                aboutRowWebsite.setup(R.drawable.ic_public, R.string.about_website, R.string.website_url)
+                aboutRowSource.setup(R.drawable.ic_code, R.string.about_source_code, R.string.github_url)
+                aboutRowPrivacy.setup(R.drawable.ic_shield, R.string.about_privacy, R.string.privacy_policy_url)
+                aboutMadeBy.setOnClickListener {
+                    ShareUtils.openUrlInApp(requireContext(), getString(R.string.author_url))
+                }
                 return root
             }
         }
@@ -103,7 +114,7 @@ class AboutActivity : AppCompatActivity() {
 
         fun getPageTitle(position: Int): Int {
             return when (position) {
-                posAbout -> R.string.tab_about
+                posAbout -> R.string.about_tab_title
                 posLicense -> R.string.tab_licenses
                 else -> error("Unknown position for ViewPager2")
             }

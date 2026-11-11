@@ -5,243 +5,358 @@
 
 package org.schabi.newpipe.fragments
 
-import android.content.res.ColorStateList
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
+import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.core.widget.ImageViewCompat
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
-import java.util.function.Supplier
 import org.schabi.newpipe.R
-import org.schabi.newpipe.error.ErrorInfo
-import org.schabi.newpipe.error.UserAction
-import org.schabi.newpipe.extractor.Page
-import org.schabi.newpipe.extractor.ServiceList
+import org.schabi.newpipe.databinding.FragmentHomeFeedBinding
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
-import org.schabi.newpipe.fragments.list.BaseListFragment
-import org.schabi.newpipe.local.shorts.ShortsAdapter
-import org.schabi.newpipe.local.shorts.ShortsDiscovery
+import org.schabi.newpipe.feedengine.ActivitySignals
+import org.schabi.newpipe.feedengine.StreamPulse
+import org.schabi.newpipe.feedengine.ui.FeedRow
+import org.schabi.newpipe.feedengine.ui.HomeFeedAdapter
+import org.schabi.newpipe.info_list.dialog.InfoItemDialog
+import org.schabi.newpipe.local.history.HistoryRecordManager
 import org.schabi.newpipe.player.playqueue.SinglePlayQueue
-import org.schabi.newpipe.util.ExtractorHelper
 import org.schabi.newpipe.util.NavigationHelper
 
 /**
- * Stream's Home "All" feed, built like YouTube's Home: a Shorts shelf on top, then big video
- * cards mixing YouTube's Music, Gaming, Podcasts, Movies and Live lists one after another,
- * with more items loaded while scrolling.
+ * Stream's personalised Home ("For you"), powered by [StreamPulse]: big video cards with
+ * blocks of Shorts in between, like YouTube's Home. It loads more while scrolling, records
+ * what was shown, and rebuilds itself when the user comes back after watching something,
+ * so the feed follows the user's latest interests within seconds.
  */
-class HomeFeedFragment : BaseListFragment<HomeFeedFragment.Feed, List<StreamInfoItem>>() {
+class HomeFeedFragment : Fragment(), HomeFeedAdapter.Callbacks {
 
-    data class Feed(val videos: List<StreamInfoItem>, val shorts: List<StreamInfoItem>)
-
-    /** One YouTube list ("kiosk") feeding the Home mix and where its next page is. */
-    private data class Source(val kioskId: String, val url: String, var nextPage: Page?)
-
+    private var binding: FragmentHomeFeedBinding? = null
     private val disposables = CompositeDisposable()
-    private val sources = mutableListOf<Source>()
-    private val seenUrls = HashSet<String>()
+    private val adapter = HomeFeedAdapter(this)
 
-    private var shelfView: View? = null
-    private var shelfShorts: List<StreamInfoItem> = emptyList()
+    private var session: StreamPulse.Session? = null
+    private val shortsPool = ArrayDeque<StreamInfoItem>()
+    private var videosSinceShorts = 0
+    private var headerCount = 0
+    private var loadingMore = false
+    private val pendingImpressions = LinkedHashSet<String>()
+
+    /** newest watch-history time the feed already reacted to */
+    private var handledActivity = Long.MAX_VALUE
+    private var historyDisposable: Disposable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // the feed is rebuilt from the (cached) network lists instead of saved items
-        setUseDefaultStateSaving(false)
+        adapter.setHasStableIds(true)
     }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View = inflater.inflate(R.layout.fragment_kiosk, container, false)
+    ): View = FragmentHomeFeedBinding.inflate(inflater, container, false)
+        .also { binding = it }
+        .root
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        val b = binding!!
+        val layoutManager = GridLayoutManager(requireContext(), HomeFeedAdapter.SPAN)
+        layoutManager.spanSizeLookup = adapter.spanSizeLookup
+        b.homeFeedList.layoutManager = layoutManager
+        b.homeFeedList.adapter = adapter
+        b.homeFeedList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if (dy > 0 && layoutManager.findLastVisibleItemPosition() > adapter.itemCount - LOAD_AHEAD) {
+                    loadMore()
+                }
+            }
+        })
+        b.homeFeedRefresh.setOnRefreshListener { load() }
+
+        if (adapter.itemCount == 0) load()
+        watchHistory()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // missed some activity while away (e.g. app was in the background)? rebuild the feed
+        if (session == null) return
+        disposables.add(
+            StreamPulse.latestActivity(requireContext())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({ latest ->
+                    if (latest > handledActivity) {
+                        binding?.homeFeedList?.scrollToPosition(0)
+                        load()
+                    }
+                }, { e -> Log.w(TAG, "Could not check activity", e) })
+        )
+    }
+
+    /**
+     * Live adaptation: as soon as the user starts watching something (the player is a bottom
+     * sheet, so this fragment stays visible), videos related to it are ranked and slotted in
+     * just below what is on screen, without reloading or losing the scroll position.
+     */
+    private fun watchHistory() {
+        historyDisposable?.dispose()
+        historyDisposable = HistoryRecordManager(requireContext())
+            .streamHistorySortedById
+            .map { entries -> entries.maxByOrNull { it.accessDate }?.let { listOf(it) } ?: emptyList() }
+            .filter { it.isNotEmpty() }
+            .map { it.first() }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ entry ->
+                val millis = entry.accessDate.toInstant().toEpochMilli()
+                if (session != null && millis > handledActivity) {
+                    handledActivity = millis
+                    injectRelated(entry.streamEntity.serviceId, entry.streamEntity.url, entry.streamEntity.title)
+                }
+            }, { e -> Log.w(TAG, "History watcher failed", e) })
+    }
+
+    private fun injectRelated(serviceId: Int, url: String, title: String) {
+        val current = session ?: return
+        disposables.add(
+            StreamPulse.becauseYouWatched(requireContext(), current, serviceId, url, title)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({ related ->
+                    val list = binding?.homeFeedList ?: return@subscribe
+                    if (session !== current || related.isEmpty()) return@subscribe
+                    val lm = list.layoutManager as GridLayoutManager
+                    val at = lm.findLastVisibleItemPosition() + 2
+                    adapter.insertRows(at, related.map { FeedRow.Video(it) })
+                }, { e -> Log.w(TAG, "Could not adapt feed", e) })
+        )
+    }
+
+    override fun onPause() {
+        flushImpressions()
+        super.onPause()
+    }
+
+    override fun onDestroyView() {
+        historyDisposable?.dispose()
+        historyDisposable = null
+        binding = null
+        super.onDestroyView()
+    }
 
     override fun onDestroy() {
         disposables.dispose()
         super.onDestroy()
     }
 
-    // ---------------------------------------------------------------------------------------
-    // Shorts shelf (list header)
-    // ---------------------------------------------------------------------------------------
-
-    override fun getListHeaderSupplier(): Supplier<View> = Supplier { shelfView ?: createShelf() }
-
-    private fun createShelf(): View {
-        val view = layoutInflater.inflate(R.layout.home_shorts_shelf, itemsList, false)
-        val list = view.findViewById<RecyclerView>(R.id.shelf_list)
-        val width = resources.getDimensionPixelSize(R.dimen.home_shelf_card_width)
-        val adapter = ShortsAdapter(
-            fixedWidthPx = width,
-            onClick = ::playShorts,
-            onLongClick = ::showInfoItemDialog
-        )
-        list.adapter = adapter
-        adapter.submit(shelfShorts)
-        ImageViewCompat.setImageTintList(
-            view.findViewById<ImageView>(R.id.shelf_icon),
-            ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.stream_rose))
-        )
-        view.isVisible = shelfShorts.isNotEmpty()
-        view.tag = adapter
-        shelfView = view
-        return view
-    }
-
-    private fun updateShelf(shorts: List<StreamInfoItem>) {
-        shelfShorts = shorts
-        val view = shelfView ?: return
-        (view.tag as? ShortsAdapter)?.submit(shorts)
-        view.isVisible = shorts.isNotEmpty()
-    }
-
-    private fun playShorts(items: List<StreamInfoItem>, position: Int) {
-        if (position !in items.indices) return
-        val activity = activity as? AppCompatActivity ?: return
-        NavigationHelper.playOnMainPlayer(activity, SinglePlayQueue(items, position))
-    }
-
-    // ---------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------------
     // Loading
-    // ---------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------------
 
-    override fun doInitialLoadLogic() {
-        startLoading(false)
-    }
+    private fun load() {
+        val b = binding ?: return
+        b.homeFeedMessage.isVisible = false
+        b.homeFeedProgress.isVisible = adapter.itemCount == 0 && !b.homeFeedRefresh.isRefreshing
+        loadingMore = true
 
-    override fun startLoading(forceLoad: Boolean) {
-        super.startLoading(forceLoad)
-        disposables.clear()
-        val serviceId = ServiceList.YouTube.serviceId
-
-        val lists = KIOSKS.map { kioskId ->
-            Single.fromCallable {
-                ServiceList.YouTube.kioskList.getListLinkHandlerFactoryByType(kioskId)
-                    .fromId(kioskId).url
-            }
-                .flatMap { url ->
-                    ExtractorHelper.getKioskInfo(serviceId, url, forceLoad).map { info ->
-                        Source(kioskId, url, info.nextPage) to
-                            info.relatedItems.filterIsInstance<StreamInfoItem>()
+        disposables.add(
+            StreamPulse.home(requireContext())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({ result ->
+                    session = result.session
+                    handledActivity = result.session.latestActivityMillis
+                    shortsPool.clear()
+                    shortsPool.addAll(result.shorts)
+                    videosSinceShorts = 0
+                    headerCount = 0
+                    adapter.setRows(firstRows(result.videos))
+                    loadingMore = false
+                    binding?.let {
+                        it.homeFeedProgress.isVisible = false
+                        it.homeFeedRefresh.isRefreshing = false
+                        it.homeFeedMessage.isVisible = adapter.itemCount == 0
+                        it.homeFeedMessage.setText(R.string.home_feed_empty)
                     }
-                }
-                .subscribeOn(Schedulers.io())
-                .onErrorReturn { e ->
-                    Log.w(LOG_TAG, "Home list $kioskId unavailable", e)
-                    Source(kioskId, "", null) to emptyList()
-                }
-        }
-        val shorts = ShortsDiscovery.load(requireContext(), forceLoad)
-            .onErrorReturn { emptyList() }
-
-        disposables.add(
-            Single.zip(Single.zip(lists) { it.toList() }, shorts) { results, shortsList ->
-                @Suppress("UNCHECKED_CAST")
-                val pairs = results as List<Pair<Source, List<StreamInfoItem>>>
-                synchronized(sources) {
-                    sources.clear()
-                    sources.addAll(pairs.map { it.first }.filter { it.url.isNotEmpty() })
-                }
-                seenUrls.clear()
-                Feed(mixVideos(pairs.map { it.second }), shortsList.take(SHELF_SIZE))
-            }
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(::handleResult) { e ->
-                    showError(ErrorInfo(e, UserAction.REQUESTED_KIOSK, "Home feed"))
-                }
+                }, { e ->
+                    Log.e(TAG, "Could not build Home feed", e)
+                    loadingMore = false
+                    binding?.let {
+                        it.homeFeedProgress.isVisible = false
+                        it.homeFeedRefresh.isRefreshing = false
+                        it.homeFeedMessage.isVisible = adapter.itemCount == 0
+                        it.homeFeedMessage.setText(R.string.home_feed_error)
+                    }
+                })
         )
     }
 
-    override fun handleResult(result: Feed) {
-        super.handleResult(result)
-        isLoading.set(false)
-        updateShelf(result.shorts)
-        infoListAdapter.clearStreamItemList()
-        infoListAdapter.addInfoItemList(result.videos)
-        if (result.videos.isEmpty() && result.shorts.isEmpty()) {
-            showEmptyState()
-        }
-    }
-
-    override fun hasMoreItems(): Boolean = synchronized(sources) { sources.any { it.nextPage != null } }
-
-    override fun loadMoreItems() {
-        isLoading.set(true)
-        showListFooter(true)
-        val serviceId = ServiceList.YouTube.serviceId
-        val pending = synchronized(sources) { sources.filter { it.nextPage != null } }
-        val pages = pending.map { source ->
-            ExtractorHelper.getMoreKioskItems(serviceId, source.url, source.nextPage)
-                .map { page ->
-                    synchronized(sources) { source.nextPage = page.nextPage }
-                    page.items
-                }
-                .subscribeOn(Schedulers.io())
-                .onErrorReturn { e ->
-                    Log.w(LOG_TAG, "More of ${source.kioskId} unavailable", e)
-                    synchronized(sources) { source.nextPage = null }
-                    emptyList()
-                }
-        }
-        if (pages.isEmpty()) {
-            handleNextItems(emptyList())
-            return
-        }
+    private fun loadMore() {
+        val current = session ?: return
+        if (loadingMore || !current.hasMore()) return
+        loadingMore = true
         disposables.add(
-            Single.zip(pages) { results ->
-                @Suppress("UNCHECKED_CAST")
-                mixVideos(results.map { it as List<StreamInfoItem> })
-            }
+            StreamPulse.more(requireContext(), current)
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(::handleNextItems) { e ->
-                    Log.w(LOG_TAG, "Could not load more Home items", e)
-                    handleNextItems(emptyList())
-                }
+                .subscribe({ videos ->
+                    if (session === current && videos.isNotEmpty()) {
+                        adapter.appendRows(moreRows(videos))
+                    }
+                    loadingMore = false
+                }, { e ->
+                    Log.w(TAG, "Could not load more", e)
+                    loadingMore = false
+                })
         )
     }
 
-    override fun handleNextItems(result: List<StreamInfoItem>) {
-        super.handleNextItems(result)
-        showListFooter(false)
-        infoListAdapter.addInfoItemList(result)
+    /** First video, then a Shorts block, then the rest with a Shorts block every few videos. */
+    private fun firstRows(videos: List<StreamInfoItem>): List<FeedRow> {
+        val rows = ArrayList<FeedRow>()
+        videos.firstOrNull()?.let { rows.add(FeedRow.Video(it)) }
+        addShortsBlock(rows)
+        rows.addAll(moreRows(videos.drop(1)))
+        return rows
     }
 
-    /** One video from each list in turn, without Shorts and without repeats. */
-    private fun mixVideos(lists: List<List<StreamInfoItem>>): List<StreamInfoItem> {
-        val result = ArrayList<StreamInfoItem>()
-        val longest = lists.maxOfOrNull { it.size } ?: 0
-        for (i in 0 until longest) {
-            for (list in lists) {
-                val item = list.getOrNull(i) ?: continue
-                if (!item.isShortFormContent && seenUrls.add(item.url)) {
-                    result.add(item)
-                }
+    private fun moreRows(videos: List<StreamInfoItem>): List<FeedRow> {
+        val rows = ArrayList<FeedRow>()
+        for (video in videos) {
+            rows.add(FeedRow.Video(video))
+            if (++videosSinceShorts >= VIDEOS_BETWEEN_SHORTS) {
+                addShortsBlock(rows)
             }
         }
-        return result
+        return rows
+    }
+
+    private fun addShortsBlock(rows: MutableList<FeedRow>) {
+        if (shortsPool.size < 2) return
+        rows.add(FeedRow.ShortsHeader(headerCount++))
+        repeat(minOf(SHORTS_PER_BLOCK, shortsPool.size / 2 * 2)) {
+            rows.add(FeedRow.Short(shortsPool.removeFirst()))
+        }
+        videosSinceShorts = 0
+    }
+
+    // -------------------------------------------------------------------------------------
+    // Callbacks
+    // -------------------------------------------------------------------------------------
+
+    override fun onVideoClick(item: StreamInfoItem) {
+        NavigationHelper.openVideoDetailFragment(
+            requireContext(),
+            requireActivity().supportFragmentManager,
+            item.serviceId,
+            item.url,
+            item.name,
+            null,
+            false
+        )
+    }
+
+    override fun onChannelClick(item: StreamInfoItem) {
+        val url = item.uploaderUrl ?: return
+        NavigationHelper.openChannelFragment(
+            requireActivity().supportFragmentManager,
+            item.serviceId,
+            url,
+            item.uploaderName ?: ""
+        )
+    }
+
+    override fun onShortClick(item: StreamInfoItem) {
+        val shorts = adapter.rows().filterIsInstance<FeedRow.Short>().map { it.item }
+        val index = shorts.indexOfFirst { it.url == item.url }.coerceAtLeast(0)
+        val activity = activity as? AppCompatActivity ?: return
+        NavigationHelper.playOnMainPlayer(activity, SinglePlayQueue(shorts, index))
+    }
+
+    override fun onVideoMenu(item: StreamInfoItem, anchor: View) = showMenu(item, anchor)
+
+    override fun onShortMenu(item: StreamInfoItem, anchor: View) = showMenu(item, anchor)
+
+    override fun onItemShown(item: StreamInfoItem) {
+        pendingImpressions.add(item.url)
+        if (pendingImpressions.size >= IMPRESSION_BATCH) flushImpressions()
+    }
+
+    private fun showMenu(item: StreamInfoItem, anchor: View) {
+        val popup = PopupMenu(requireContext(), anchor)
+        popup.menu.add(0, MENU_NOT_INTERESTED, 0, R.string.feed_not_interested)
+        popup.menu.add(0, MENU_BLOCK_CHANNEL, 1, R.string.feed_dont_recommend_channel)
+        popup.menu.add(0, MENU_MORE, 2, R.string.more_options)
+        popup.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                MENU_NOT_INTERESTED -> {
+                    ActivitySignals.get(requireContext()).markNotInterested(item)
+                    removeFromFeed { it.url == item.url }
+                    Toast.makeText(requireContext(), R.string.feed_hidden_video, Toast.LENGTH_SHORT).show()
+                }
+
+                MENU_BLOCK_CHANNEL -> {
+                    ActivitySignals.get(requireContext()).blockChannel(item.uploaderUrl)
+                    removeFromFeed { it.uploaderUrl != null && it.uploaderUrl == item.uploaderUrl }
+                    Toast.makeText(requireContext(), R.string.feed_hidden_channel, Toast.LENGTH_SHORT).show()
+                }
+
+                MENU_MORE -> showInfoDialog(item)
+            }
+            true
+        }
+        popup.show()
+    }
+
+    private fun removeFromFeed(predicate: (StreamInfoItem) -> Boolean) {
+        val kept = adapter.rows().filterNot {
+            when (it) {
+                is FeedRow.Video -> predicate(it.item)
+                is FeedRow.Short -> predicate(it.item)
+                is FeedRow.ShortsHeader -> false
+            }
+        }
+        adapter.setRows(kept)
+    }
+
+    private fun showInfoDialog(item: StreamInfoItem) {
+        val activity = activity ?: return
+        try {
+            InfoItemDialog.Builder(activity, requireContext(), this, item).create().show()
+        } catch (e: IllegalArgumentException) {
+            InfoItemDialog.Builder.reportErrorDuringInitialization(e, item)
+        }
+    }
+
+    private fun flushImpressions() {
+        if (pendingImpressions.isEmpty()) return
+        val urls = pendingImpressions.toList()
+        pendingImpressions.clear()
+        val signals = ActivitySignals.get(requireContext())
+        disposables.add(
+            Completable.fromAction { signals.recordShown(urls) }
+                .subscribeOn(Schedulers.io())
+                .subscribe({}, { e -> Log.w(TAG, "Could not save impressions", e) })
+        )
     }
 
     companion object {
-        private const val LOG_TAG = "HomeFeedFragment"
-        private const val SHELF_SIZE = 20
-
-        /** YouTube lists mixed into the Home feed, in this order. */
-        private val KIOSKS = listOf(
-            "trending_music",
-            "trending_gaming",
-            "trending_podcasts_episodes",
-            "trending_movies_and_shows",
-            "live"
-        )
+        private const val TAG = "HomeFeedFragment"
+        private const val LOAD_AHEAD = 6
+        private const val VIDEOS_BETWEEN_SHORTS = 8
+        private const val SHORTS_PER_BLOCK = 4
+        private const val IMPRESSION_BATCH = 20
+        private const val MENU_NOT_INTERESTED = 1
+        private const val MENU_BLOCK_CHANNEL = 2
+        private const val MENU_MORE = 3
     }
 }

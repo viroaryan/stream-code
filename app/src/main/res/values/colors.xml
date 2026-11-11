@@ -4,7 +4,7 @@
     <color name="contrastColor">@color/black</color>
     <color name="defaultIconTint">@color/black</color>
 
-    <color name="ic_launcher_background">#000000</color>
+    <color name="ic_launcher_background">#E11D48</color>
     <!-- Stream brand -->
     <color name="stream_rose">#E11D48</color>
 
