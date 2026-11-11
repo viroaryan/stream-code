@@ -1,3 +1,4 @@
+<!-- Stream: Home tab icon (rounded house outline) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -6,5 +7,5 @@
     android:viewportHeight="24">
     <path
         android:fillColor="#FF000000"
-        android:pathData="M10,20v-6h4v6h5v-8h3L12,3 2,12h3v8z" />
+        android:pathData="M11.3,2.55a1.1,1.1 0,0 1,1.4 0l7.6,6.3A2,2 0,0 1,21 10.4V19a2,2 0,0 1,-2 2h-4.2a1,1 0,0 1,-1 -1v-5h-3.6v5a1,1 0,0 1,-1 1H5a2,2 0,0 1,-2 -2v-8.6a2,2 0,0 1,0.7 -1.55zM12,4.6L5,10.4V19h3.2v-5a1,1 0,0 1,1 -1h5.6a1,1 0,0 1,1 1v5H19v-8.6z" />
 </vector>

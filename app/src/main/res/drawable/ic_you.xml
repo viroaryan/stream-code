@@ -1,0 +1,11 @@
+<!-- Stream: You tab icon (person inside a circle) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:tint="@color/defaultIconTint"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M12,2a10,10 0,1 1,0 20a10,10 0,0 1,0 -20zM12,4a8,8 0,0 0,-6.1 13.2C7.4,15.8 9.6,15 12,15s4.6,0.8 6.1,2.2A8,8 0,0 0,12 4zM12,17c-1.8,0 -3.4,0.6 -4.6,1.6A8,8 0,0 0,12 20a8,8 0,0 0,4.6 -1.4C15.4,17.6 13.8,17 12,17zM12,6.5a3.5,3.5 0,1 1,0 7a3.5,3.5 0,0 1,0 -7zM12,8.5a1.5,1.5 0,1 0,0 3a1.5,1.5 0,0 0,0 -3z" />
+</vector>

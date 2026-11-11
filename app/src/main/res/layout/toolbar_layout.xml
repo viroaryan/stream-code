@@ -6,14 +6,42 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
+    <!-- Stream: the top bar blends into the background, like YouTube's -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
+        android:background="?android:attr/windowBackground"
         android:gravity="center_vertical"
         android:minHeight="?attr/actionBarSize"
         android:theme="@style/ToolbarTheme">
+
+        <!-- Stream logo, shown on the main screen instead of a title -->
+        <LinearLayout
+            android:id="@+id/toolbar_logo"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_stream_logo"
+                tools:ignore="ContentDescription" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:text="@string/stream_wordmark"
+                android:textColor="?attr/actionColor"
+                android:textSize="21sp" />
+        </LinearLayout>
 
         <include
             android:id="@+id/toolbar_search_container"

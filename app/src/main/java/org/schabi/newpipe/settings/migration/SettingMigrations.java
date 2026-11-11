@@ -222,6 +222,18 @@ public final class SettingMigrations {
     };
 
     /**
+     * Stream 1.2: the main screen became a YouTube-like bottom navigation
+     * (Home, Shorts, Subscriptions, You). Every installation starts from that layout once;
+     * the user can still change the tabs afterwards in Settings.
+     */
+    private static final Migration MIGRATION_8_9 = new Migration(8, 9) {
+        @Override
+        protected void migrate(@NonNull final Context context) {
+            TabsManager.getManager(context).resetTabs();
+        }
+    };
+
+    /**
      * List of all implemented migrations.
      * <p>
      * <b>Append new migrations to the end of the list</b> to keep it sorted ascending.
@@ -236,12 +248,13 @@ public final class SettingMigrations {
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
+            MIGRATION_8_9,
     };
 
     /**
      * Version number for preferences. Must be incremented every time a migration is necessary.
      */
-    private static final int VERSION = 8;
+    private static final int VERSION = 9;
 
 
     static void runMigrationsIfNeeded(@NonNull final Context context) {

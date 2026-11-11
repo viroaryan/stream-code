@@ -231,11 +231,14 @@ class FeedFragment : BaseStateFragment<FeedState>() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
 
-        activity.supportActionBar?.setDisplayShowTitleEnabled(true)
-        activity.supportActionBar?.setTitle(
-            if (shortsOnly) R.string.shorts_section_title else R.string.fragment_feed_title
-        )
-        activity.supportActionBar?.subtitle = groupName
+        // Stream: as a bottom navigation page the top bar shows the Stream logo instead
+        if (!useAsFrontPage) {
+            activity.supportActionBar?.setDisplayShowTitleEnabled(true)
+            activity.supportActionBar?.setTitle(
+                if (shortsOnly) R.string.shorts_section_title else R.string.fragment_feed_title
+            )
+            activity.supportActionBar?.subtitle = groupName
+        }
 
         inflater.inflate(R.menu.menu_feed_fragment, menu)
     }

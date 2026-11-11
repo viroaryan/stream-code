@@ -13,15 +13,11 @@ import com.grack.nanojson.JsonStringWriter;
 
 import org.schabi.newpipe.R;
 import org.schabi.newpipe.database.LocalItem.LocalItemType;
-import org.schabi.newpipe.error.ErrorInfo;
-import org.schabi.newpipe.error.ErrorUtil;
-import org.schabi.newpipe.error.UserAction;
-import org.schabi.newpipe.extractor.NewPipe;
-import org.schabi.newpipe.extractor.StreamingService;
 import org.schabi.newpipe.extractor.exceptions.ExtractionException;
 import org.schabi.newpipe.fragments.BlankFragment;
+import org.schabi.newpipe.fragments.HomeFragment;
+import org.schabi.newpipe.fragments.YouFragment;
 import org.schabi.newpipe.fragments.list.channel.ChannelFragment;
-import org.schabi.newpipe.fragments.list.kiosk.DefaultKioskFragment;
 import org.schabi.newpipe.fragments.list.kiosk.KioskFragment;
 import org.schabi.newpipe.fragments.list.playlist.PlaylistFragment;
 import org.schabi.newpipe.local.bookmark.BookmarkFragment;
@@ -30,7 +26,6 @@ import org.schabi.newpipe.local.history.StatisticsPlaylistFragment;
 import org.schabi.newpipe.local.playlist.LocalPlaylistFragment;
 import org.schabi.newpipe.local.subscription.SubscriptionFragment;
 import org.schabi.newpipe.util.KioskTranslator;
-import org.schabi.newpipe.util.ServiceHelper;
 
 import java.util.Objects;
 
@@ -167,7 +162,8 @@ public abstract class Tab {
         CHANNEL(new ChannelTab()),
         PLAYLIST(new PlaylistTab()),
         FEEDGROUP(new FeedGroupTab()),
-        SHORTS(new ShortsTab());
+        SHORTS(new ShortsTab()),
+        YOU(new YouTab());
 
         private final Tab tab;
 
@@ -221,7 +217,7 @@ public abstract class Tab {
 
         @Override
         public String getTabName(final Context context) {
-            return context.getString(R.string.tab_subscriptions);
+            return context.getString(R.string.tab_channels);
         }
 
         @DrawableRes
@@ -247,7 +243,7 @@ public abstract class Tab {
 
         @Override
         public String getTabName(final Context context) {
-            return context.getString(R.string.fragment_feed_title);
+            return context.getString(R.string.tab_subscriptions);
         }
 
         @DrawableRes
@@ -533,34 +529,51 @@ public abstract class Tab {
             return ID;
         }
 
+        // Stream: the default kiosk tab is the Home tab, which shows YouTube's
+        // Music, Gaming, Live, Podcasts and Movies kiosks as top tabs.
         @Override
         public String getTabName(final Context context) {
-            return KioskTranslator.getTranslatedKioskName(getDefaultKioskId(context), context);
+            return context.getString(R.string.tab_home);
         }
 
         @DrawableRes
         @Override
         public int getTabIconRes(final Context context) {
-            return KioskTranslator.getKioskIcon(getDefaultKioskId(context));
+            return R.drawable.ic_home;
         }
 
         @Override
-        public DefaultKioskFragment getFragment(final Context context) {
-            return new DefaultKioskFragment();
+        public HomeFragment getFragment(final Context context) {
+            return new HomeFragment();
+        }
+    }
+
+    /**
+     * Stream: the "You" tab, a hub for the local library (history, playlists,
+     * downloads, channels) and the settings.
+     */
+    public static class YouTab extends Tab {
+        public static final int ID = 11;
+
+        @Override
+        public int getTabId() {
+            return ID;
         }
 
-        private String getDefaultKioskId(final Context context) {
-            final int kioskServiceId = ServiceHelper.getSelectedServiceId(context);
+        @Override
+        public String getTabName(final Context context) {
+            return context.getString(R.string.tab_you);
+        }
 
-            String kioskId = "";
-            try {
-                final StreamingService service = NewPipe.getService(kioskServiceId);
-                kioskId = service.getKioskList().getDefaultKioskId();
-            } catch (final ExtractionException e) {
-                ErrorUtil.showSnackbar(context, new ErrorInfo(e,
-                        UserAction.REQUESTED_KIOSK, "Loading default kiosk for selected service"));
-            }
-            return kioskId;
+        @DrawableRes
+        @Override
+        public int getTabIconRes(final Context context) {
+            return R.drawable.ic_you;
+        }
+
+        @Override
+        public YouFragment getFragment(final Context context) {
+            return new YouFragment();
         }
     }
 

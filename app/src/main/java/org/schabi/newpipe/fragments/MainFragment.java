@@ -1,12 +1,5 @@
 package org.schabi.newpipe.fragments;
 
-import static android.widget.RelativeLayout.ABOVE;
-import static android.widget.RelativeLayout.ALIGN_PARENT_BOTTOM;
-import static android.widget.RelativeLayout.ALIGN_PARENT_TOP;
-import static android.widget.RelativeLayout.BELOW;
-import static com.google.android.material.tabs.TabLayout.INDICATOR_GRAVITY_BOTTOM;
-import static com.google.android.material.tabs.TabLayout.INDICATOR_GRAVITY_TOP;
-
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
@@ -19,7 +12,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -29,7 +22,6 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentStatePagerAdapterMenuWorkaround;
 import androidx.preference.PreferenceManager;
-import androidx.viewpager.widget.ViewPager;
 
 import com.google.android.material.tabs.TabLayout;
 
@@ -62,8 +54,6 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
     private SharedPreferences prefs;
     private boolean youtubeRestrictedModeEnabled;
     private String youtubeRestrictedModeEnabledKey;
-    private boolean mainTabsPositionBottom;
-    private String mainTabsPositionKey;
     private boolean showShortsSection;
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -90,8 +80,6 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
         youtubeRestrictedModeEnabledKey = getString(R.string.youtube_restricted_mode_enabled);
         youtubeRestrictedModeEnabled = prefs.getBoolean(youtubeRestrictedModeEnabledKey, false);
-        mainTabsPositionKey = getString(R.string.main_tabs_position_key);
-        mainTabsPositionBottom = prefs.getBoolean(mainTabsPositionKey, false);
         showShortsSection = Tab.ShortsTab.isEnabled(requireContext());
     }
 
@@ -111,8 +99,8 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
         binding.mainTabLayout.setupWithViewPager(binding.pager);
         binding.mainTabLayout.addOnTabSelectedListener(this);
 
+        styleBottomNavigation();
         setupTabs();
-        updateTabLayoutPosition();
     }
 
     @Override
@@ -127,12 +115,6 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
             youtubeRestrictedModeEnabled = newYoutubeRestrictedModeEnabled;
             showShortsSection = newShowShortsSection;
             setupTabs();
-        }
-
-        final boolean newMainTabsPosition = prefs.getBoolean(mainTabsPositionKey, false);
-        if (mainTabsPositionBottom != newMainTabsPosition) {
-            mainTabsPositionBottom = newMainTabsPosition;
-            updateTabLayoutPosition();
         }
     }
 
@@ -220,18 +202,51 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
     }
 
     private void updateTabsIconAndDescription() {
+        final ColorStateList itemColors = bottomNavigationColors();
         for (int i = 0; i < tabsList.size(); i++) {
             final TabLayout.Tab tabToSet = binding.mainTabLayout.getTabAt(i);
             if (tabToSet != null) {
                 final Tab tab = tabsList.get(i);
+                final String name = tab.getTabName(requireContext());
+                // Stream: icon above a small label, like YouTube's bottom navigation
+                tabToSet.setCustomView(R.layout.item_bottom_nav);
                 tabToSet.setIcon(tab.getTabIconRes(requireContext()));
-                tabToSet.setContentDescription(tab.getTabName(requireContext()));
+                tabToSet.setText(name);
+                tabToSet.setContentDescription(name);
+                final View custom = tabToSet.getCustomView();
+                if (custom != null) {
+                    final TextView label = custom.findViewById(android.R.id.text1);
+                    label.setTextColor(itemColors);
+                }
             }
         }
     }
 
+    /**
+     * Stream: the main screen shows the Stream logo in the top bar (see MainActivity), not the
+     * name of the selected tab.
+     *
+     * @param tabPosition position of the selected tab (unused, the logo is the same for all)
+     */
     private void updateTitleForTab(final int tabPosition) {
-        setTitle(tabsList.get(tabPosition).getTabName(requireContext()));
+        if (activity != null && activity.getSupportActionBar() != null) {
+            activity.getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+    }
+
+    /**
+     * Colours of the bottom navigation items, like YouTube's.
+     *
+     * @return primary text colour when selected, secondary text colour otherwise
+     */
+    private ColorStateList bottomNavigationColors() {
+        @ColorInt final int selected = ThemeHelper.resolveColorFromAttr(requireContext(),
+                android.R.attr.textColorPrimary);
+        @ColorInt final int normal = ThemeHelper.resolveColorFromAttr(requireContext(),
+                android.R.attr.textColorSecondary);
+        return new ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_selected}, new int[]{}},
+                new int[]{selected, normal});
     }
 
     public void commitPlaylistTabs() {
@@ -240,36 +255,17 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
                 .forEach(LocalPlaylistFragment::saveImmediate);
     }
 
-    private void updateTabLayoutPosition() {
+    /**
+     * Stream: the tab layout is a YouTube-style bottom navigation bar with the page background
+     * colour, no indicator, and selected/unselected icon colours.
+     */
+    private void styleBottomNavigation() {
         final ScrollableTabLayout tabLayout = binding.mainTabLayout;
-        final ViewPager viewPager = binding.pager;
-        final boolean bottom = mainTabsPositionBottom;
-
-        // change layout params to make the tab layout appear either at the top or at the bottom
-        final var tabParams = (RelativeLayout.LayoutParams) tabLayout.getLayoutParams();
-        final var pagerParams = (RelativeLayout.LayoutParams) viewPager.getLayoutParams();
-
-        tabParams.removeRule(bottom ? ALIGN_PARENT_TOP : ALIGN_PARENT_BOTTOM);
-        tabParams.addRule(bottom ? ALIGN_PARENT_BOTTOM : ALIGN_PARENT_TOP);
-        pagerParams.removeRule(bottom ? BELOW : ABOVE);
-        pagerParams.addRule(bottom ? ABOVE : BELOW, R.id.main_tab_layout);
-        tabLayout.setSelectedTabIndicatorGravity(
-                bottom ? INDICATOR_GRAVITY_TOP : INDICATOR_GRAVITY_BOTTOM);
-
-        tabLayout.setLayoutParams(tabParams);
-        viewPager.setLayoutParams(pagerParams);
-
-        // change the background and icon color of the tab layout:
-        // service-colored at the top, app-background-colored at the bottom
         tabLayout.setBackgroundColor(ThemeHelper.resolveColorFromAttr(requireContext(),
-                bottom ? android.R.attr.windowBackground : R.attr.colorPrimary));
-
-        @ColorInt final int iconColor = bottom
-                ? ThemeHelper.resolveColorFromAttr(requireContext(), android.R.attr.colorAccent)
-                : Color.WHITE;
-        tabLayout.setTabRippleColor(ColorStateList.valueOf(iconColor).withAlpha(32));
-        tabLayout.setTabIconTint(ColorStateList.valueOf(iconColor));
-        tabLayout.setSelectedTabIndicatorColor(iconColor);
+                android.R.attr.windowBackground));
+        tabLayout.setSelectedTabIndicator(null);
+        tabLayout.setTabIconTint(bottomNavigationColors());
+        tabLayout.setTabRippleColor(ColorStateList.valueOf(Color.TRANSPARENT));
     }
 
     @Override

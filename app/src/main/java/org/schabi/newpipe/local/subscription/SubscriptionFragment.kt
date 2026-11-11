@@ -133,8 +133,11 @@ class SubscriptionFragment : BaseStateFragment<SubscriptionState>() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
 
-        activity.supportActionBar?.setDisplayShowTitleEnabled(true)
-        activity.supportActionBar?.setTitle(R.string.tab_subscriptions)
+        // Stream: this screen lists the subscribed channels ("Your channels" in the You tab)
+        if (!useAsFrontPage) {
+            activity.supportActionBar?.setDisplayShowTitleEnabled(true)
+            activity.supportActionBar?.setTitle(R.string.tab_channels)
+        }
 
         buildImportExportMenu(menu)
     }

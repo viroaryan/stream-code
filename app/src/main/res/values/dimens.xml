@@ -37,6 +37,10 @@
     <dimen name="video_item_grid_thumbnail_image_width">164dp</dimen>
     <!-- Stream: minimum width of a portrait card in the Shorts section -->
     <dimen name="shorts_card_min_width">150dp</dimen>
+    <!-- Stream: You tab -->
+    <dimen name="you_divider_margin">8dp</dimen>
+    <!-- Stream: bottom navigation height -->
+    <dimen name="bottom_nav_height">56dp</dimen>
     <dimen name="video_item_grid_thumbnail_image_height">92dp</dimen>
 
     <dimen name="channel_item_card_thumbnail_image_size">100dp</dimen>
