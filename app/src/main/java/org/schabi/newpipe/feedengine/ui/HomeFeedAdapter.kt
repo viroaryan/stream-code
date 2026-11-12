@@ -107,7 +107,7 @@ class HomeFeedAdapter(private val callbacks: Callbacks) : RecyclerView.Adapter<R
         fun bind(item: StreamInfoItem) {
             val context = b.root.context
             b.homeVideoTitle.text = item.name
-            CoilHelper.loadThumbnail(b.homeVideoThumb, item.thumbnails)
+            CoilHelper.loadHdThumbnail(b.homeVideoThumb, item.url, false, item.thumbnails)
             CoilHelper.loadAvatar(b.homeVideoAvatar, item.uploaderAvatars)
 
             val live = StreamTypeUtil.isLiveStream(item.streamType)
@@ -172,7 +172,7 @@ class HomeFeedAdapter(private val callbacks: Callbacks) : RecyclerView.Adapter<R
             } else {
                 ""
             }
-            CoilHelper.loadThumbnail(b.homeShortThumb, item.thumbnails)
+            CoilHelper.loadHdThumbnail(b.homeShortThumb, item.url, true, item.thumbnails)
             b.homeShortThumb.setOnClickListener { callbacks.onShortClick(item) }
             b.homeShortThumb.setOnLongClickListener {
                 callbacks.onShortMenu(item, b.homeShortMore)

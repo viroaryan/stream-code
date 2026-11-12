@@ -123,6 +123,7 @@ import org.schabi.newpipe.player.ui.PlayerUi;
 import org.schabi.newpipe.player.ui.PlayerUiList;
 import org.schabi.newpipe.player.ui.PopupPlayerUi;
 import org.schabi.newpipe.player.ui.VideoPlayerUi;
+import org.schabi.newpipe.util.StreamExtras;
 import org.schabi.newpipe.util.DependentPreferenceHelper;
 import org.schabi.newpipe.util.ExtractorHelper;
 import org.schabi.newpipe.util.ListHelper;
@@ -2616,7 +2617,8 @@ public final class Player implements PlaybackListener, Listener {
 
     public Optional<SponsorBlockSegment> getSkippableSponsorBlockSegment(final int progress) {
         return getCurrentStreamInfo().map(info -> {
-            final SponsorBlockSegment[] sponsorBlockSegments = info.getSponsorBlockSegments();
+            final SponsorBlockSegment[] sponsorBlockSegments =
+                    StreamExtras.of(info).getSponsorBlockSegments();
             if (sponsorBlockSegments == null) {
                 return null;
             }

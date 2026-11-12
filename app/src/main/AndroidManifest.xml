@@ -96,6 +96,14 @@
             android:exported="false"
             android:label="@string/title_activity_about" />
 
+        <!-- Stream: full-screen vertical Shorts player -->
+        <activity
+            android:name=".local.shorts.ShortsPlayerActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/StreamShortsPlayerTheme" />
+
         <service
             android:name=".local.subscription.services.SubscriptionsImportService"
             android:foregroundServiceType="dataSync" />

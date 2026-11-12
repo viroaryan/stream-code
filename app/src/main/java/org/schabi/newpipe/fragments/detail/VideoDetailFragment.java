@@ -112,6 +112,7 @@ import org.schabi.newpipe.player.playqueue.PlayQueueItem;
 import org.schabi.newpipe.player.playqueue.SinglePlayQueue;
 import org.schabi.newpipe.player.ui.MainPlayerUi;
 import org.schabi.newpipe.player.ui.VideoPlayerUi;
+import org.schabi.newpipe.util.StreamExtras;
 import org.schabi.newpipe.util.Constants;
 import org.schabi.newpipe.util.DeviceUtils;
 import org.schabi.newpipe.util.ExtractorHelper;
@@ -1599,7 +1600,7 @@ public final class VideoDetailFragment
             displayUploaderAsSubChannel(info);
         }
 
-        final ReturnYouTubeDislikeInfo rydInfo = info.getRydInfo();
+        final ReturnYouTubeDislikeInfo rydInfo = StreamExtras.of(info).getRydInfo();
         final boolean isRydEnabled = prefs.getBoolean(
                 getString(R.string.return_youtube_dislike_enable_key), true);
         final boolean overrideLikeCount = prefs.getBoolean(
@@ -2693,7 +2694,7 @@ public final class VideoDetailFragment
             return;
         }
 
-        currentInfo.removeSponsorBlockSegment("TEMP");
+        StreamExtras.of(currentInfo).removeSponsorBlockSegment("TEMP");
 
         final SponsorBlockSegment segment = new SponsorBlockSegment(
                 "TEMP",
@@ -2702,7 +2703,7 @@ public final class VideoDetailFragment
                 SponsorBlockCategory.PENDING,
                 SponsorBlockAction.SKIP);
 
-        currentInfo.addSponsorBlockSegment(segment);
+        StreamExtras.of(currentInfo).addSponsorBlockSegment(segment);
 
         player.UIs().get(MainPlayerUi.class).ifPresent(
                 playerUi -> playerUi.onMarkSeekbarRequested(currentInfo));
@@ -2720,7 +2721,7 @@ public final class VideoDetailFragment
             return;
         }
 
-        currentInfo.removeSponsorBlockSegment("TEMP");
+        StreamExtras.of(currentInfo).removeSponsorBlockSegment("TEMP");
 
         player.UIs().get(MainPlayerUi.class).ifPresent(
                 playerUi -> playerUi.onMarkSeekbarRequested(currentInfo));
@@ -2770,8 +2771,8 @@ public final class VideoDetailFragment
                         return;
                     }
 
-                    currentInfo.removeSponsorBlockSegment("TEMP");
-                    currentInfo.addSponsorBlockSegment(newSegment);
+                    StreamExtras.of(currentInfo).removeSponsorBlockSegment("TEMP");
+                    StreamExtras.of(currentInfo).addSponsorBlockSegment(newSegment);
 
                     player.UIs().get(MainPlayerUi.class).ifPresent(
                             playerUi -> playerUi.onMarkSeekbarRequested(currentInfo));

@@ -153,6 +153,10 @@ class InterestProfile(
             // 4. explicit "Not interested"
             signals.dislikedTopics().forEach { (word, count) -> topics.merge(word, -1.5 * count, Double::plus) }
 
+            // 5. local likes: a strong, explicit signal
+            signals.likedTopics().forEach { (word, count) -> topics.merge(word, 1.5 * count, Double::plus) }
+            signals.likedChannels().forEach { (url, count) -> channels.merge(url, 1.5 * count, Double::plus) }
+
             val seeds = seedCandidates
                 .groupBy { it.url }
                 .map { (_, list) -> list.maxBy { it.weight } }

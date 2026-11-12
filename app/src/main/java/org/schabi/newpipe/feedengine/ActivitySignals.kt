@@ -32,6 +32,10 @@ class ActivitySignals private constructor(context: Context) {
     private val blockedChannels: MutableSet<String> = prefs.getStringSet(KEY_BLOCKED_CHANNELS, null)
         ?.toMutableSet() ?: mutableSetOf()
     private val dislikedTopics: MutableMap<String, Double> = loadDoubles(KEY_DISLIKED_TOPICS)
+    private val likedVideos: MutableSet<String> = prefs.getStringSet(KEY_LIKED_VIDEOS, null)
+        ?.toMutableSet() ?: mutableSetOf()
+    private val likedTopics: MutableMap<String, Double> = loadDoubles(KEY_LIKED_TOPICS)
+    private val likedChannels: MutableMap<String, Double> = loadDoubles(KEY_LIKED_CHANNELS)
 
     data class Impression(val count: Int, val lastShownMillis: Long)
 
@@ -77,12 +81,47 @@ class ActivitySignals private constructor(context: Context) {
     @Synchronized
     fun dislikedTopics(): Map<String, Double> = dislikedTopics.toMap()
 
+    // --- likes (local only: Stream has no account) ------------------------------------------
+
+    /** Likes or un-likes a video; liked videos teach the feed their topics and channel. */
+    @Synchronized
+    fun toggleLike(url: String, title: String?, uploaderUrl: String?): Boolean {
+        val liked = if (likedVideos.remove(url)) false else likedVideos.add(url)
+        val delta = if (liked) 1.0 else -1.0
+        Tokenizer.tokens(title).forEach { word ->
+            val value = (likedTopics[word] ?: 0.0) + delta
+            if (value <= 0.0) likedTopics.remove(word) else likedTopics[word] = value
+        }
+        if (!uploaderUrl.isNullOrBlank()) {
+            val value = (likedChannels[uploaderUrl] ?: 0.0) + delta
+            if (value <= 0.0) likedChannels.remove(uploaderUrl) else likedChannels[uploaderUrl] = value
+        }
+        prefs.edit {
+            putStringSet(KEY_LIKED_VIDEOS, likedVideos.toList().takeLast(MAX_HIDDEN).toSet())
+            putString(KEY_LIKED_TOPICS, JSONObject(likedTopics.toMap()).toString())
+            putString(KEY_LIKED_CHANNELS, JSONObject(likedChannels.toMap()).toString())
+        }
+        return liked
+    }
+
+    @Synchronized
+    fun isLiked(url: String): Boolean = url in likedVideos
+
+    @Synchronized
+    fun likedTopics(): Map<String, Double> = likedTopics.toMap()
+
+    @Synchronized
+    fun likedChannels(): Map<String, Double> = likedChannels.toMap()
+
     @Synchronized
     fun clear() {
         impressions.clear()
         hiddenVideos.clear()
         blockedChannels.clear()
         dislikedTopics.clear()
+        likedVideos.clear()
+        likedTopics.clear()
+        likedChannels.clear()
         prefs.edit { clear() }
     }
 
@@ -131,6 +170,9 @@ class ActivitySignals private constructor(context: Context) {
         private const val KEY_HIDDEN_VIDEOS = "hidden_videos"
         private const val KEY_BLOCKED_CHANNELS = "blocked_channels"
         private const val KEY_DISLIKED_TOPICS = "disliked_topics"
+        private const val KEY_LIKED_VIDEOS = "liked_videos"
+        private const val KEY_LIKED_TOPICS = "liked_topics"
+        private const val KEY_LIKED_CHANNELS = "liked_channels"
         private const val MAX_IMPRESSIONS = 3000
         private const val MAX_HIDDEN = 2000
         const val HOUR = 60L * 60L * 1000L

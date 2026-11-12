@@ -142,13 +142,13 @@ public final class ImportExportJsonHelper {
         writer.array(JSON_SUBSCRIPTIONS_ARRAY_KEY);
         for (final SubscriptionItem item : items) {
             writer.object();
-            writer.value(JSON_SERVICE_ID_KEY, item.getServiceId());
-            writer.value(JSON_URL_KEY, item.getUrl());
-            writer.value(JSON_NAME_KEY, item.getName());
+            writer.value(JSON_SERVICE_ID_KEY, item.serviceId());
+            writer.value(JSON_URL_KEY, item.url());
+            writer.value(JSON_NAME_KEY, item.name());
             writer.end();
 
             if (eventListener != null) {
-                eventListener.onItemCompleted(item.getName());
+                eventListener.onItemCompleted(item.name());
             }
         }
         writer.end();

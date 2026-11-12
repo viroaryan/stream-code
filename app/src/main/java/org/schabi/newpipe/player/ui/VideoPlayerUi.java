@@ -63,7 +63,6 @@ import com.google.android.exoplayer2.video.VideoSize;
 import org.schabi.newpipe.App;
 import org.schabi.newpipe.R;
 import org.schabi.newpipe.databinding.PlayerBinding;
-import org.schabi.newpipe.extractor.MediaFormat;
 import org.schabi.newpipe.extractor.stream.AudioStream;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
 import org.schabi.newpipe.extractor.stream.VideoStream;
@@ -1140,10 +1139,17 @@ public abstract class VideoPlayerUi extends PlayerUi implements SeekBar.OnSeekBa
             return;
         }
 
+        // Stream: one simple entry per resolution (e.g. "1080p60"), the current one ticked
+        final String current = player.getSelectedVideoStream()
+                .map(VideoStream::getResolution).orElse(null);
+        final java.util.Set<String> shown = new java.util.HashSet<>();
         for (int i = 0; i < availableStreams.size(); i++) {
-            final VideoStream videoStream = availableStreams.get(i);
-            qualityPopupMenu.getMenu().add(POPUP_MENU_ID_QUALITY, i, Menu.NONE, MediaFormat
-                    .getNameById(videoStream.getFormatId()) + " " + videoStream.getResolution());
+            final String resolution = availableStreams.get(i).getResolution();
+            if (!shown.add(resolution)) {
+                continue;
+            }
+            qualityPopupMenu.getMenu().add(POPUP_MENU_ID_QUALITY, i, Menu.NONE,
+                    resolution.equals(current) ? resolution + "  ✓" : resolution);
         }
         qualityPopupMenu.setOnMenuItemClickListener(this);
         qualityPopupMenu.setOnDismissListener(this);
@@ -1284,7 +1290,7 @@ public abstract class VideoPlayerUi extends PlayerUi implements SeekBar.OnSeekBa
         isSomePopupMenuVisible = true;
 
         player.getSelectedVideoStream()
-                .map(s -> MediaFormat.getNameById(s.getFormatId()) + " " + s.getResolution())
+                .map(VideoStream::getResolution)
                 .ifPresent(binding.qualityTextView::setText);
     }
 

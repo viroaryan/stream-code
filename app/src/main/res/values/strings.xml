@@ -1078,4 +1078,12 @@
     <string name="about_made_by">Made by Abhiraj Aryan · Bihar, India</string>
     <string name="about_based_on">Free and open source (GPL-3.0). Built on NewPipe and Tubular.</string>
     <string name="about_tab_title">About</string>
+    <!-- Stream: Shorts player -->
+    <string name="short_action_like">Like</string>
+    <string name="short_action_liked">Liked</string>
+    <string name="short_action_comments">Comments</string>
+    <string name="short_action_share">Share</string>
+    <string name="short_action_save">Save</string>
+    <string name="short_action_more">More</string>
+    <string name="short_error">This Short could not be played. Swipe up for the next one.</string>
 </resources>

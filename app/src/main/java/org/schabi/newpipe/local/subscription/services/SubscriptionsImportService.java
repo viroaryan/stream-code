@@ -207,13 +207,13 @@ public class SubscriptionsImportService extends BaseImportExportService {
                         List<ChannelTabInfo>>>>) subscriptionItem -> {
                     try {
                         final ChannelInfo channelInfo = ExtractorHelper
-                                .getChannelInfo(subscriptionItem.getServiceId(),
-                                        subscriptionItem.getUrl(), true)
+                                .getChannelInfo(subscriptionItem.serviceId(),
+                                        subscriptionItem.url(), true)
                                 .blockingGet();
                         return Notification.createOnNext(new Pair<>(channelInfo,
                                 Collections.singletonList(
                                         ExtractorHelper.getChannelTab(
-                                                subscriptionItem.getServiceId(),
+                                                subscriptionItem.serviceId(),
                                                 channelInfo.getTabs().get(0), true).blockingGet()
                                 )));
                     } catch (final Throwable e) {

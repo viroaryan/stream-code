@@ -182,4 +182,37 @@ object CoilHelper {
                 }
             }
     }
+
+    // ---------------------------------------------------------------------------------------
+    // Stream: HD thumbnails
+    // ---------------------------------------------------------------------------------------
+
+    private val YOUTUBE_ID =
+        Regex("(?:[?&]v=|/shorts/|youtu[.]be/|/embed/|/live/)([A-Za-z0-9_-]{11})")
+
+    /**
+     * Stream: loads YouTube's high-quality thumbnail of a video (1280x720, or the portrait
+     * original for Shorts) built from the video id, and falls back to the thumbnails the
+     * extractor gave when it doesn't exist. List thumbnails from the extractor are often
+     * small and look blurry on big cards.
+     */
+    fun loadHdThumbnail(
+        target: ImageView,
+        videoUrl: String?,
+        isShort: Boolean,
+        fallback: List<Image>
+    ) {
+        val id = videoUrl?.let { YOUTUBE_ID.find(it)?.groupValues?.get(1) }
+        if (id == null || !ImageStrategy.shouldLoadImages()) {
+            loadThumbnail(target, fallback)
+            return
+        }
+        val hdUrl = "https://i.ytimg.com/vi/$id/" + if (isShort) "oar2.jpg" else "hq720.jpg"
+        val request = ImageRequest.Builder(target.context)
+            .data(hdUrl)
+            .target(target)
+            .listener(onError = { _, _ -> loadThumbnail(target, fallback) })
+            .build()
+        target.context.imageLoader.enqueue(request)
+    }
 }

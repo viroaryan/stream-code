@@ -23,6 +23,7 @@ import org.schabi.newpipe.extractor.sponsorblock.SponsorBlockCategory;
 import org.schabi.newpipe.extractor.sponsorblock.SponsorBlockSegment;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
 import org.schabi.newpipe.local.sponsorblock.SponsorBlockDataManager;
+import org.schabi.newpipe.util.StreamExtras;
 import org.schabi.newpipe.util.SponsorBlockHelper;
 import org.schabi.newpipe.util.SponsorBlockMode;
 
@@ -70,7 +71,7 @@ public class SponsorBlockFragment
         }
 
         segmentListAdapter = new SponsorBlockSegmentListAdapter(context, this);
-        segmentListAdapter.setItems(streamInfo.getSponsorBlockSegments());
+        segmentListAdapter.setItems(StreamExtras.of(streamInfo).getSponsorBlockSegments());
     }
 
     @Override
@@ -228,7 +229,7 @@ public class SponsorBlockFragment
             return;
         }
 
-        segmentListAdapter.setItems(streamInfo.getSponsorBlockSegments());
+        segmentListAdapter.setItems(StreamExtras.of(streamInfo).getSponsorBlockSegments());
     }
 
     private void doMarkPendingSegment(final boolean isStart) {

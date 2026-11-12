@@ -49,8 +49,10 @@ import org.schabi.newpipe.extractor.kiosk.KioskInfo;
 import org.schabi.newpipe.extractor.linkhandler.ListLinkHandler;
 import org.schabi.newpipe.extractor.playlist.PlaylistInfo;
 import org.schabi.newpipe.extractor.returnyoutubedislike.ReturnYouTubeDislikeApiSettings;
+import org.schabi.newpipe.extractor.returnyoutubedislike.ReturnYouTubeDislikeExtractorHelper;
 import org.schabi.newpipe.extractor.search.SearchInfo;
 import org.schabi.newpipe.extractor.sponsorblock.SponsorBlockApiSettings;
+import org.schabi.newpipe.extractor.sponsorblock.SponsorBlockExtractorHelper;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 import org.schabi.newpipe.extractor.suggestion.SuggestionExtractor;
@@ -120,11 +122,45 @@ public final class ExtractorHelper {
                                                    final boolean forceLoad) {
         checkServiceId(serviceId);
         return checkCache(forceLoad, serviceId, url, InfoCache.Type.STREAM,
-                Single.fromCallable(() -> StreamInfo.getInfo(
-                        NewPipe.getService(serviceId),
-                        url,
-                        buildSponsorBlockApiSettings(context),
-                        buildReturnYouTubeDislikeApiSettings(context))));
+                Single.fromCallable(() -> {
+                    final StreamInfo info = StreamInfo.getInfo(NewPipe.getService(serviceId), url);
+                    loadStreamExtras(context, info);
+                    return info;
+                }));
+    }
+
+    /**
+     * Stream: fetches SponsorBlock segments and Return YouTube Dislike data for a video and
+     * keeps them in {@link StreamExtras}. Failures only mean these extras are missing; they
+     * never stop the video from loading.
+     *
+     * @param context used to read the settings
+     * @param info    the freshly loaded video
+     */
+    private static void loadStreamExtras(final Context context, final StreamInfo info) {
+        final StreamExtras extras = StreamExtras.of(info);
+        try {
+            final SponsorBlockApiSettings sponsorBlock = buildSponsorBlockApiSettings(context);
+            if (sponsorBlock != null) {
+                extras.setSponsorBlockSegments(
+                        SponsorBlockExtractorHelper.getSegments(info, sponsorBlock));
+            }
+        } catch (final Exception e) {
+            if (MainActivity.DEBUG) {
+                Log.w(TAG, "Could not load SponsorBlock segments", e);
+            }
+        }
+        try {
+            final ReturnYouTubeDislikeApiSettings ryd =
+                    buildReturnYouTubeDislikeApiSettings(context);
+            if (ryd != null) {
+                extras.setRydInfo(ReturnYouTubeDislikeExtractorHelper.getInfo(info, ryd));
+            }
+        } catch (final Exception e) {
+            if (MainActivity.DEBUG) {
+                Log.w(TAG, "Could not load dislikes", e);
+            }
+        }
     }
 
     private static ReturnYouTubeDislikeApiSettings buildReturnYouTubeDislikeApiSettings(
@@ -344,7 +380,7 @@ public final class ExtractorHelper {
                             .append(Localization.DOT_SEPARATOR);
                 }
 
-                String content = metaInfo.getContent().getContent().trim();
+                String content = metaInfo.getContent().content().trim();
                 if (content.endsWith(".")) {
                     content = content.substring(0, content.length() - 1); // remove . at end
                 }

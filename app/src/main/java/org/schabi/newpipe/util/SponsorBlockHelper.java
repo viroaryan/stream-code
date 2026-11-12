@@ -110,7 +110,8 @@ public final class SponsorBlockHelper {
     ) {
         seekBar.clearMarkers();
 
-        final SponsorBlockSegment[] sponsorBlockSegments = streamInfo.getSponsorBlockSegments();
+        final SponsorBlockSegment[] sponsorBlockSegments =
+                StreamExtras.of(streamInfo).getSponsorBlockSegments();
 
         if (sponsorBlockSegments == null) {
             return;

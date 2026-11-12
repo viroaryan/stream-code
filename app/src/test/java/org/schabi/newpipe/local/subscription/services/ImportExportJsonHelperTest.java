@@ -75,9 +75,9 @@ public class ImportExportJsonHelperTest {
             final SubscriptionItem item1 = itemsFromFile.get(i);
             final SubscriptionItem item2 = itemsSecondRead.get(i);
 
-            final boolean equals = item1.getServiceId() == item2.getServiceId()
-                    && item1.getUrl().equals(item2.getUrl())
-                    && item1.getName().equals(item2.getName());
+            final boolean equals = item1.serviceId() == item2.serviceId()
+                    && item1.url().equals(item2.url())
+                    && item1.name().equals(item2.name());
 
             if (!equals) {
                 fail("The list of items were different from each other");

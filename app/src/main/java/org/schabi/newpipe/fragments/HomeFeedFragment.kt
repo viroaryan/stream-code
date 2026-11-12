@@ -31,7 +31,7 @@ import org.schabi.newpipe.feedengine.ui.FeedRow
 import org.schabi.newpipe.feedengine.ui.HomeFeedAdapter
 import org.schabi.newpipe.info_list.dialog.InfoItemDialog
 import org.schabi.newpipe.local.history.HistoryRecordManager
-import org.schabi.newpipe.player.playqueue.SinglePlayQueue
+import org.schabi.newpipe.local.shorts.ShortsPlayerActivity
 import org.schabi.newpipe.util.NavigationHelper
 
 /**
@@ -279,7 +279,7 @@ class HomeFeedFragment : Fragment(), HomeFeedAdapter.Callbacks {
         val shorts = adapter.rows().filterIsInstance<FeedRow.Short>().map { it.item }
         val index = shorts.indexOfFirst { it.url == item.url }.coerceAtLeast(0)
         val activity = activity as? AppCompatActivity ?: return
-        NavigationHelper.playOnMainPlayer(activity, SinglePlayQueue(shorts, index))
+        ShortsPlayerActivity.start(activity, shorts, index)
     }
 
     override fun onVideoMenu(item: StreamInfoItem, anchor: View) = showMenu(item, anchor)

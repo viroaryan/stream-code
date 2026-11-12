@@ -28,12 +28,14 @@ import org.schabi.newpipe.fragments.OnScrollBelowItemsListener;
 import org.schabi.newpipe.info_list.InfoListAdapter;
 import org.schabi.newpipe.info_list.ItemViewMode;
 import org.schabi.newpipe.info_list.dialog.InfoItemDialog;
+import org.schabi.newpipe.local.shorts.ShortsPlayerActivity;
 import org.schabi.newpipe.util.NavigationHelper;
 import org.schabi.newpipe.util.OnClickGesture;
 import org.schabi.newpipe.util.StateSaver;
 import org.schabi.newpipe.util.ThemeHelper;
 import org.schabi.newpipe.views.SuperScrollLayoutManager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.function.Supplier;
@@ -375,6 +377,28 @@ public abstract class BaseListFragment<I, N> extends BaseStateFragment<I>
 
     private void onStreamSelected(final StreamInfoItem selectedItem) {
         onItemSelected(selectedItem);
+        if (selectedItem.isShortFormContent()) {
+            // Stream: Shorts open in the full-screen swipe player, with the list's other Shorts
+            final List<StreamInfoItem> shorts = new ArrayList<>();
+            for (final InfoItem item : infoListAdapter.getItemsList()) {
+                if (item instanceof StreamInfoItem
+                        && ((StreamInfoItem) item).isShortFormContent()) {
+                    shorts.add((StreamInfoItem) item);
+                }
+            }
+            int index = 0;
+            for (int i = 0; i < shorts.size(); i++) {
+                if (shorts.get(i).getUrl().equals(selectedItem.getUrl())) {
+                    index = i;
+                    break;
+                }
+            }
+            if (shorts.isEmpty()) {
+                shorts.add(selectedItem);
+            }
+            ShortsPlayerActivity.start(requireContext(), shorts, index);
+            return;
+        }
         NavigationHelper.openVideoDetailFragment(requireContext(), getFM(),
                 selectedItem.getServiceId(), selectedItem.getUrl(), selectedItem.getName(),
                 null, false);
