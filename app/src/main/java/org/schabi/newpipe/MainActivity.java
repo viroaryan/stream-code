@@ -207,13 +207,13 @@ public class MainActivity extends AppCompatActivity {
 
         final App app = App.getInstance();
 
-        if (sharedPreferences.getBoolean(app.getString(R.string.update_app_key), false)
-                && sharedPreferences
-                .getBoolean(app.getString(R.string.update_check_consent_key), false)) {
+        if (sharedPreferences.getBoolean(app.getString(R.string.update_app_key), true)) {
+            // Stream: updates only come from Stream's own site, so checking is on by default
             // Start the worker which is checking all conditions
             // and eventually searching for a new version.
             NewVersionWorker.enqueueNewVersionCheckingWork(app, false);
         }
+        NewVersionWorker.showPendingUpdateDialog(this);
     }
 
     @Override
@@ -396,6 +396,7 @@ public class MainActivity extends AppCompatActivity {
         // Change the date format to match the selected language on resume
         Localization.initPrettyTime(Localization.resolvePrettyTime());
         super.onResume();
+        NewVersionWorker.showPendingUpdateDialog(this);
 
         // Close drawer on return, and don't show animation,
         // so it looks like the drawer isn't open when the user returns to MainActivity

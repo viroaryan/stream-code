@@ -141,14 +141,14 @@
 
     <!-- Stream: an action of the Shorts player's right rail (icon above a label) -->
     <style name="StreamShortAction">
-        <item name="android:layout_width">64dp</item>
+        <item name="android:layout_width">56dp</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:gravity">center_horizontal</item>
-        <item name="android:paddingTop">10dp</item>
-        <item name="android:paddingBottom">10dp</item>
-        <item name="android:drawablePadding">4dp</item>
+        <item name="android:paddingTop">7dp</item>
+        <item name="android:paddingBottom">7dp</item>
+        <item name="android:drawablePadding">2dp</item>
         <item name="android:textColor">@android:color/white</item>
-        <item name="android:textSize">12sp</item>
+        <item name="android:textSize">11sp</item>
         <item name="android:shadowColor">#99000000</item>
         <item name="android:shadowRadius">4</item>
         <item name="drawableTint">@android:color/white</item>

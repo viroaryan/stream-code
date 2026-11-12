@@ -124,10 +124,21 @@ public final class ExtractorHelper {
         return checkCache(forceLoad, serviceId, url, InfoCache.Type.STREAM,
                 Single.fromCallable(() -> {
                     final StreamInfo info = StreamInfo.getInfo(NewPipe.getService(serviceId), url);
-                    loadStreamExtras(context, info);
+                    // Stream: the extras load in the background; the video waits at most a
+                    // moment for them so playback never stalls on these side services
+                    final java.util.concurrent.CountDownLatch done =
+                            new java.util.concurrent.CountDownLatch(1);
+                    new Thread(() -> {
+                        loadStreamExtras(context, info);
+                        done.countDown();
+                    }, "stream-extras").start();
+                    done.await(EXTRAS_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
                     return info;
                 }));
     }
+
+    /** Stream: how long a video waits for SponsorBlock / dislike data before starting. */
+    private static final long EXTRAS_WAIT_MS = 600;
 
     /**
      * Stream: fetches SponsorBlock segments and Return YouTube Dislike data for a video and

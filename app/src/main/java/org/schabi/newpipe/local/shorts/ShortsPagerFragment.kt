@@ -70,6 +70,7 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
     private var currentInfo: StreamInfo? = null
     private var currentView: StyledPlayerView? = null
     private var userPaused = false
+    private var loops = 0
 
     private var session: StreamPulse.Session? = null
     private var loadingMore = false
@@ -228,12 +229,13 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
             context,
             dataSource,
             object : VideoPlaybackResolver.QualityResolver {
-                override fun getDefaultResolutionIndex(sortedVideos: List<VideoStream>) = ListHelper.getDefaultResolutionIndex(context, sortedVideos)
+                // Stream: Shorts play at 720p, sharp on a phone and quick to start
+                override fun getDefaultResolutionIndex(sortedVideos: List<VideoStream>) = ListHelper.getResolutionIndex(context, sortedVideos, SHORTS_RESOLUTION)
 
                 override fun getOverrideResolutionIndex(
                     sortedVideos: List<VideoStream>,
                     playbackQuality: String?
-                ) = ListHelper.getDefaultResolutionIndex(context, sortedVideos)
+                ) = ListHelper.getResolutionIndex(context, sortedVideos, SHORTS_RESOLUTION)
             }
         )
         player = ExoPlayer.Builder(context)
@@ -267,6 +269,14 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
     }
 
     private val playerListener = object : Player.Listener {
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
+            if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) loops++
+        }
+
         override fun onRenderedFirstFrame() {
             holderAt(currentPosition)?.b?.shortThumb?.isVisible = false
         }
@@ -289,6 +299,9 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
         val p = player ?: return
         val holder = holderAt(position) ?: return
         val item = adapter.itemAt(position)
+
+        finishWatch(position)
+        loops = 0
 
         // reset the page we are leaving
         holderAt(currentPosition)?.takeIf { currentPosition != position }?.let {
@@ -332,6 +345,7 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
             })
 
         prefetch(position + 1)
+        prefetch(position + 2)
     }
 
     /** Fetches (and caches) the next Short's data so the next swipe starts quickly. */
@@ -343,6 +357,34 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
                 .subscribeOn(Schedulers.io())
                 .subscribe({}, { })
         )
+    }
+
+    /**
+     * Stream Pulse: tells the engine how the Short we are leaving was watched and reacts
+     * at once, like Instagram: a loved Short pulls similar Shorts right ahead, a quick
+     * swipe-away pushes that channel further down.
+     */
+    private fun finishWatch(nextPosition: Int) {
+        val p = player ?: return
+        val info = currentInfo ?: return
+        if (currentPosition !in 0 until adapter.itemCount || currentPosition == nextPosition) return
+        val item = adapter.itemAt(currentPosition)
+        val durationMs = if (p.duration != C.TIME_UNSET) p.duration else info.duration * 1000
+        val watchedMs = loops * durationMs + p.currentPosition
+        val score = ActivitySignals.get(requireContext())
+            .recordShortWatch(item.url, item.name, item.uploaderUrl, watchedMs, durationMs, loops)
+        loops = 0
+        if (!feedMode) return
+        if (score >= 1.0) {
+            val signals = ActivitySignals.get(requireContext())
+            val similar = info.relatedItems.filterIsInstance<StreamInfoItem>()
+                .filter { (it.isShortFormContent || it.url.contains("/shorts/")) && !signals.isHidden(it) }
+                .filter { !adapter.contains(it.url) }
+                .take(SIMILAR_AFTER_LOVE)
+            adapter.insertAt(nextPosition + 1, similar)
+        } else if (score < 0) {
+            adapter.sinkChannel(nextPosition + 1, SINK_WINDOW, item.uploaderUrl)
+        }
     }
 
     private fun recordWatched(info: StreamInfo) {
@@ -445,6 +487,10 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
     }
 
     companion object {
+        private const val SHORTS_RESOLUTION = "720p"
+        private const val SIMILAR_AFTER_LOVE = 3
+        private const val SINK_WINDOW = 15
+
         private const val TAG = "ShortsPagerFragment"
         private const val ARG_FEED_MODE = "feed_mode"
         private const val LOAD_AHEAD = 5

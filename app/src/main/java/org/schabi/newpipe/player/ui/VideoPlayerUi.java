@@ -103,7 +103,7 @@ public abstract class VideoPlayerUi extends PlayerUi implements SeekBar.OnSeekBa
 
     // other constants (TODO remove playback speeds and use normal menu for popup, too)
     private static final float[] PLAYBACK_SPEEDS = {
-            0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f, 2.5f, 3.0f
+            0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f, 2.5f, 3.0f, 3.5f, 4.0f
     };
 
     private enum PlayButtonAction {
@@ -1244,6 +1244,7 @@ public abstract class VideoPlayerUi extends PlayerUi implements SeekBar.OnSeekBa
                             .setPreferredTextLanguages(captionLanguage,
                                     PlayerHelper.captionLanguageStemOf(captionLanguage))
                             .setPreferredTextRoleFlags(C.ROLE_FLAG_CAPTION)
+                            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
                             .setRendererDisabled(textRendererIndex, false));
                     player.getPrefs().edit().putString(context.getString(
                             R.string.caption_user_set_key), captionLanguage).apply();
@@ -1279,6 +1280,7 @@ public abstract class VideoPlayerUi extends PlayerUi implements SeekBar.OnSeekBa
                     .setPreferredTextLanguages(userPreferredLanguage,
                             PlayerHelper.captionLanguageStemOf(userPreferredLanguage))
                     .setPreferredTextRoleFlags(C.ROLE_FLAG_CAPTION)
+                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
                     .setRendererDisabled(textRendererIndex, false));
         }
     }

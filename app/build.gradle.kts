@@ -56,9 +56,9 @@ configure<ApplicationExtension> {
         minSdk = 21
         targetSdk = 35
 
-        versionCode = System.getProperty("versionCodeOverride")?.toInt() ?: 4
+        versionCode = System.getProperty("versionCodeOverride")?.toInt() ?: 5
 
-        versionName = "1.3.0"
+        versionName = "1.4.0"
         buildConfigField("String", "GITHUB_REPO", "\"$streamGithubRepo\"")
         System.getProperty("versionNameSuffix")?.let { versionNameSuffix = it }
 

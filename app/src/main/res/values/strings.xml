@@ -1086,4 +1086,8 @@
     <string name="short_action_save">Save</string>
     <string name="short_action_more">More</string>
     <string name="short_error">This Short could not be played. Swipe up for the next one.</string>
+    <string name="stream_update_dialog_title">Stream %1$s aa gaya!</string>
+    <string name="stream_update_dialog_message">Naya update ready hai. Update dabao, APK download hoga, use kholke install karo. Aapka data safe rahega.</string>
+    <string name="stream_update_dialog_update">Update</string>
+    <string name="stream_update_dialog_later">Baad me</string>
 </resources>

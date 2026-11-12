@@ -51,6 +51,13 @@ class NewVersionWorker(
             return
         }
 
+        // Stream: remember the update so the app itself can offer it with a dialog,
+        // even when notifications are turned off
+        PreferenceManager.getDefaultSharedPreferences(applicationContext).edit()
+            .putString(PENDING_UPDATE_VERSION, versionName)
+            .putString(PENDING_UPDATE_URL, apkLocationUrl)
+            .apply()
+
         // A pending intent to open the apk location url in the browser.
         val intent = Intent(Intent.ACTION_VIEW, apkLocationUrl?.toUri())
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -189,6 +196,40 @@ class NewVersionWorker(
         private const val WEBSITE_LATEST_URL = "https://stream.arivna.com/apk/latest.json"
         private val UPDATE_SOURCES = listOf(WEBSITE_LATEST_URL, GITHUB_RELEASES_API_URL)
         private const val IS_MANUAL = "isManual"
+        const val PENDING_UPDATE_VERSION = "stream_pending_update_version"
+        const val PENDING_UPDATE_URL = "stream_pending_update_url"
+
+        /**
+         * Stream: shows "New update available" inside the app, once per app start, when a
+         * newer version was found. "Update" opens the APK download on Stream's website.
+         */
+        @JvmStatic
+        fun showPendingUpdateDialog(activity: android.app.Activity) {
+            if (updateDialogShown) return
+            val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
+            val version = prefs.getString(PENDING_UPDATE_VERSION, null) ?: return
+            val url = prefs.getString(PENDING_UPDATE_URL, null) ?: return
+            val newer = runCatching {
+                Version.fromString(version) > Version.fromString(BuildConfig.VERSION_NAME)
+            }.getOrDefault(false)
+            if (!newer) {
+                prefs.edit().remove(PENDING_UPDATE_VERSION).remove(PENDING_UPDATE_URL).apply()
+                return
+            }
+            updateDialogShown = true
+            androidx.appcompat.app.AlertDialog.Builder(activity)
+                .setTitle(activity.getString(R.string.stream_update_dialog_title, version))
+                .setMessage(R.string.stream_update_dialog_message)
+                .setPositiveButton(R.string.stream_update_dialog_update) { _, _ ->
+                    activity.startActivity(
+                        Intent(Intent.ACTION_VIEW, url.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+                .setNegativeButton(R.string.stream_update_dialog_later, null)
+                .show()
+        }
+
+        private var updateDialogShown = false
 
         @JvmStatic
         fun enqueueNewVersionCheckingWork(context: Context, isManual: Boolean) {

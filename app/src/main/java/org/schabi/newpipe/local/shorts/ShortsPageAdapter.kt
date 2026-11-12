@@ -49,6 +49,36 @@ class ShortsPageAdapter(private val callbacks: Callbacks) :
 
     fun itemAt(position: Int): StreamInfoItem = items[position]
 
+    fun contains(url: String): Boolean = items.any { it.url == url }
+
+    /** Stream: puts Shorts like the one just loved right ahead of the user. */
+    fun insertAt(position: Int, more: List<StreamInfoItem>) {
+        val fresh = more.filter { m -> items.none { it.url == m.url } }
+        if (fresh.isEmpty()) return
+        val at = position.coerceIn(0, items.size)
+        items.addAll(at, fresh)
+        notifyItemRangeInserted(at, fresh.size)
+    }
+
+    /**
+     * Stream: after a quick swipe-away, upcoming Shorts of the same channel (between
+     * [from] and [from] + [window]) move to the end of the queue.
+     */
+    fun sinkChannel(from: Int, window: Int, uploaderUrl: String?) {
+        if (uploaderUrl.isNullOrBlank() || from >= items.size) return
+        val end = minOf(items.size, from + window)
+        val sunk = (from until end).filter { items[it].uploaderUrl == uploaderUrl }
+        if (sunk.isEmpty()) return
+        val moved = sunk.map { items[it] }
+        sunk.asReversed().forEach { i ->
+            items.removeAt(i)
+            notifyItemRemoved(i)
+        }
+        val start = items.size
+        items.addAll(moved)
+        notifyItemRangeInserted(start, moved.size)
+    }
+
     override fun getItemCount() = items.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {

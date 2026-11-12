@@ -2409,7 +2409,10 @@ public final class Player implements PlaybackListener, Listener {
         // Disable or enable video and subtitles renderers depending of the
         // videoAndSubtitlesEnabled value
         trackSelector.setParameters(trackSelector.buildUponParameters()
-                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !videoAndSubtitlesEnabled)
+                // Stream: captions stay off unless the user picked a caption language
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !videoAndSubtitlesEnabled
+                        || prefs.getString(context.getString(R.string.caption_user_set_key),
+                        null) == null)
                 .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, !videoAndSubtitlesEnabled));
     }
 

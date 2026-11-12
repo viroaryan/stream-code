@@ -36,6 +36,10 @@ class ActivitySignals private constructor(context: Context) {
         ?.toMutableSet() ?: mutableSetOf()
     private val likedTopics: MutableMap<String, Double> = loadDoubles(KEY_LIKED_TOPICS)
     private val likedChannels: MutableMap<String, Double> = loadDoubles(KEY_LIKED_CHANNELS)
+    private val shortTopics: MutableMap<String, Double> = loadDoubles(KEY_SHORT_TOPICS)
+    private val shortChannels: MutableMap<String, Double> = loadDoubles(KEY_SHORT_CHANNELS)
+    private val engagedShorts: MutableList<String> = prefs.getString(KEY_ENGAGED_SHORTS, null)
+        ?.split(LINE)?.filter { it.contains(SEP) }?.toMutableList() ?: mutableListOf()
 
     data class Impression(val count: Int, val lastShownMillis: Long)
 
@@ -113,8 +117,68 @@ class ActivitySignals private constructor(context: Context) {
     @Synchronized
     fun likedChannels(): Map<String, Double> = likedChannels.toMap()
 
+    // --- Shorts watch time: the signal that makes the Shorts feed feel like it reads minds ---
+
+    /**
+     * Records how a Short was watched and returns its score: swiped away within
+     * seconds is negative, watched to the end is positive, every loop adds more.
+     * Old Shorts signals fade a little with every new one, so the feed follows the
+     * user's current mood.
+     */
+    @Synchronized
+    fun recordShortWatch(
+        url: String,
+        title: String?,
+        uploaderUrl: String?,
+        watchedMs: Long,
+        durationMs: Long,
+        loops: Int
+    ): Double {
+        val fraction = if (durationMs > 0) (watchedMs.toDouble() / durationMs).coerceIn(0.0, 1.0) else 0.5
+        val score = when {
+            loops >= 1 -> 1.0 + 0.5 * minOf(loops, 3)
+            watchedMs < SWIPE_AWAY_MS -> -1.0
+            fraction >= 0.9 -> 1.0
+            fraction >= 0.5 -> 0.4
+            else -> -0.3
+        }
+        shortTopics.replaceAll { _, v -> v * SHORT_DECAY }
+        shortChannels.replaceAll { _, v -> v * SHORT_DECAY }
+        shortTopics.values.removeAll { kotlin.math.abs(it) < 0.05 }
+        shortChannels.values.removeAll { kotlin.math.abs(it) < 0.05 }
+        Tokenizer.tokens(title).forEach { shortTopics.merge(it, score, Double::plus) }
+        if (!uploaderUrl.isNullOrBlank()) shortChannels.merge(uploaderUrl, score, Double::plus)
+        if (score >= 1.0) {
+            engagedShorts.removeAll { it.startsWith(url + SEP) }
+            engagedShorts.add(url + SEP + (title ?: "").replace(LINE, ' ').replace(SEP, ' '))
+            while (engagedShorts.size > MAX_ENGAGED) engagedShorts.removeAt(0)
+        }
+        prefs.edit {
+            putString(KEY_SHORT_TOPICS, JSONObject(shortTopics.toMap()).toString())
+            putString(KEY_SHORT_CHANNELS, JSONObject(shortChannels.toMap()).toString())
+            putString(KEY_ENGAGED_SHORTS, engagedShorts.joinToString(LINE.toString()))
+        }
+        return score
+    }
+
+    @Synchronized
+    fun shortTopics(): Map<String, Double> = shortTopics.toMap()
+
+    @Synchronized
+    fun shortChannels(): Map<String, Double> = shortChannels.toMap()
+
+    /** Shorts the user loved (watched fully or looped), newest last: url to title. */
+    @Synchronized
+    fun engagedShorts(): List<Pair<String, String>> = engagedShorts.map {
+        val tab = it.indexOf(SEP)
+        it.substring(0, tab) to it.substring(tab + 1)
+    }
+
     @Synchronized
     fun clear() {
+        shortTopics.clear()
+        shortChannels.clear()
+        engagedShorts.clear()
         impressions.clear()
         hiddenVideos.clear()
         blockedChannels.clear()
@@ -173,6 +237,14 @@ class ActivitySignals private constructor(context: Context) {
         private const val KEY_LIKED_VIDEOS = "liked_videos"
         private const val KEY_LIKED_TOPICS = "liked_topics"
         private const val KEY_LIKED_CHANNELS = "liked_channels"
+        private const val KEY_SHORT_TOPICS = "short_topics"
+        private const val KEY_SHORT_CHANNELS = "short_channels"
+        private const val KEY_ENGAGED_SHORTS = "engaged_shorts"
+        private const val SWIPE_AWAY_MS = 2500L
+        private const val SHORT_DECAY = 0.985
+        private const val MAX_ENGAGED = 40
+        private const val LINE = '\n'
+        private const val SEP = '\t'
         private const val MAX_IMPRESSIONS = 3000
         private const val MAX_HIDDEN = 2000
         const val HOUR = 60L * 60L * 1000L

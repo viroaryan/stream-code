@@ -67,6 +67,9 @@ class InterestProfile(
         private const val MAX_HISTORY = 400
         private const val MAX_SEEDS = 8
         private const val MAX_SEARCHES = 15
+        private const val SHORTS_WEIGHT = 1.3
+        private const val MAX_SHORT_SEEDS = 4
+        private const val SHORT_SEED_WEIGHT = 2.5
 
         val EMPTY = InterestProfile(
             emptyMap(),
@@ -156,6 +159,14 @@ class InterestProfile(
             // 5. local likes: a strong, explicit signal
             signals.likedTopics().forEach { (word, count) -> topics.merge(word, 1.5 * count, Double::plus) }
             signals.likedChannels().forEach { (url, count) -> channels.merge(url, 1.5 * count, Double::plus) }
+
+            // 6. Shorts watch time: swiped away = less, watched fully / looped = more
+            signals.shortTopics().forEach { (word, v) -> topics.merge(word, SHORTS_WEIGHT * v, Double::plus) }
+            signals.shortChannels().forEach { (url, v) -> channels.merge(url, SHORTS_WEIGHT * v, Double::plus) }
+            // loved Shorts become seeds, so their related Shorts flow into the feed
+            signals.engagedShorts().asReversed().take(MAX_SHORT_SEEDS).forEachIndexed { rank, (url, title) ->
+                seedCandidates.add(Seed(0, url, title, SHORT_SEED_WEIGHT * 0.85.pow(rank)))
+            }
 
             val seeds = seedCandidates
                 .groupBy { it.url }
