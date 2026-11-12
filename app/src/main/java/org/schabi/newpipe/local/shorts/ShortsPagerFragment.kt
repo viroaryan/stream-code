@@ -241,6 +241,10 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
             .build()
             .apply {
                 repeatMode = Player.REPEAT_MODE_ONE
+                // Stream: no auto-captions over Shorts
+                trackSelectionParameters = trackSelectionParameters.buildUpon()
+                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                    .build()
                 setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(C.USAGE_MEDIA)
