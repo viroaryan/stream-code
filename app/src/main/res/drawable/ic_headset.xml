@@ -1,3 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stream: Claude-style line icon (rounded 1.8 strokes; shape based on Lucide, ISC licence) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -5,6 +7,10 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
     <path
-        android:fillColor="#FF000000"
-        android:pathData="M12,1c-4.97,0 -9,4.03 -9,9v7c0,1.66 1.34,3 3,3h3v-8H5v-2c0,-3.87 3.13,-7 7,-7s7,3.13 7,7v2h-4v8h3c1.66,0 3,-1.34 3,-3v-7c0,-4.97 -4.03,-9 -9,-9z" />
+        android:fillColor="#00000000"
+        android:pathData="M3,14h3a2,2 0,0 1,2 2v3a2,2 0,0 1,-2 2H5a2,2 0,0 1,-2 -2v-7a9,9 0,0 1,18 0v7a2,2 0,0 1,-2 2h-1a2,2 0,0 1,-2 -2v-3a2,2 0,0 1,2 -2h3"
+        android:strokeWidth="1.8"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 </vector>

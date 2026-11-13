@@ -124,17 +124,53 @@
         </LinearLayout>
 
         <!-- Credit -->
-        <TextView
+        <LinearLayout
             android:id="@+id/about_made_by"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="28dp"
             android:background="?attr/selectableItemBackground"
-            android:padding="8dp"
-            android:text="@string/about_made_by"
-            android:textColor="?android:attr/textColorSecondary"
-            android:textSize="13sp" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/about_made_by_label"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/about_author_name"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/about_team"
+                android:textColor="@color/stream_rose"
+                android:textSize="15sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/about_copyright"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="12.5sp" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"

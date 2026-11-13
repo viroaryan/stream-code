@@ -103,7 +103,7 @@ data class StreamItem(
             viewBinding.itemProgressView.visibility = View.GONE
         }
 
-        CoilHelper.loadThumbnail(viewBinding.itemThumbnailView, stream.thumbnailUrl)
+        CoilHelper.loadHdThumbnail(viewBinding.itemThumbnailView, stream.url, stream.isShort, stream.thumbnailUrl)
 
         if (itemVersion != ItemVersion.MINI) {
             viewBinding.itemAdditionalDetails.text =

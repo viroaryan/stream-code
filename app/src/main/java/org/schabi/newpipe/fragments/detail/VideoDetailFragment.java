@@ -347,8 +347,8 @@ public final class VideoDetailFragment
         showRelatedItems = prefs.getBoolean(getString(R.string.show_next_video_key), true);
         showDescription = prefs.getBoolean(getString(R.string.show_description_key), true);
         showSponsorBlock = prefs.getBoolean(getString(R.string.sponsor_block_enable_key), false);
-        selectedTabTag = prefs.getString(
-                getString(R.string.stream_info_selected_tab_key), COMMENTS_TAB_TAG);
+        // Stream: like YouTube, a video always opens with its recommendations below it
+        selectedTabTag = RELATED_TAB_TAG;
         prefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener);
 
         setupBroadcastReceiver();
@@ -937,18 +937,18 @@ public final class VideoDetailFragment
         tabIcons.clear();
         tabContentDescriptions.clear();
 
-        if (shouldShowComments()) {
-            pageAdapter.addFragment(
-                    CommentsFragment.getInstance(serviceId, url, title), COMMENTS_TAB_TAG);
-            tabIcons.add(R.drawable.ic_comment);
-            tabContentDescriptions.add(R.string.comments_tab_description);
-        }
-
         if (showRelatedItems && binding.relatedItemsLayout == null) {
             // temp empty fragment. will be updated in handleResult
             pageAdapter.addFragment(EmptyFragment.newInstance(false), RELATED_TAB_TAG);
             tabIcons.add(R.drawable.ic_art_track);
             tabContentDescriptions.add(R.string.related_items_tab_description);
+        }
+
+        if (shouldShowComments()) {
+            pageAdapter.addFragment(
+                    CommentsFragment.getInstance(serviceId, url, title), COMMENTS_TAB_TAG);
+            tabIcons.add(R.drawable.ic_comment);
+            tabContentDescriptions.add(R.string.comments_tab_description);
         }
 
         if (showDescription) {

@@ -1090,4 +1090,8 @@
     <string name="stream_update_dialog_message">Naya update ready hai. Update dabao, APK download hoga, use kholke install karo. Aapka data safe rahega.</string>
     <string name="stream_update_dialog_update">Update</string>
     <string name="stream_update_dialog_later">Baad me</string>
+    <string name="about_made_by_label">Made by</string>
+    <string name="about_author_name" translatable="false">Abhiraj Aryan</string>
+    <string name="about_team" translatable="false">Nirvana Team™</string>
+    <string name="about_copyright" translatable="false">© 2026 Stream · Bihar, India</string>
 </resources>

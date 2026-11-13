@@ -72,6 +72,13 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
     private var userPaused = false
     private var loops = 0
 
+    // Stream: the next Short is loaded and buffered in a second player while the current
+    // one plays, so a swipe starts it instantly
+    private var nextPlayer: ExoPlayer? = null
+    private var nextPosition = -1
+    private var nextInfo: StreamInfo? = null
+    private var nextDisposable: Disposable? = null
+
     private var session: StreamPulse.Session? = null
     private var loadingMore = false
     private var feedMode = true
@@ -223,7 +230,13 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
 
     private fun ensurePlayer() {
         if (player != null) return
+        player = buildPlayer().apply { addListener(playerListener) }
+    }
+
+    /** Builds a Shorts player; the resolver is shared by the current and the preloaded one. */
+    private fun buildPlayer(): ExoPlayer {
         val context = requireContext()
+        if (resolver != null) return newExoPlayer(context)
         val dataSource = PlayerDataSource(context, DefaultBandwidthMeter.Builder(context).build())
         resolver = VideoPlaybackResolver(
             context,
@@ -238,25 +251,26 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
                 ) = ListHelper.getResolutionIndex(context, sortedVideos, SHORTS_RESOLUTION)
             }
         )
-        player = ExoPlayer.Builder(context)
-            .setLoadControl(LoadController())
-            .build()
-            .apply {
-                repeatMode = Player.REPEAT_MODE_ONE
-                // Stream: no auto-captions over Shorts
-                trackSelectionParameters = trackSelectionParameters.buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-                    .build()
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                        .build(),
-                    true
-                )
-                addListener(playerListener)
-            }
+        return newExoPlayer(context)
     }
+
+    private fun newExoPlayer(context: android.content.Context): ExoPlayer = ExoPlayer.Builder(context)
+        .setLoadControl(LoadController())
+        .build()
+        .apply {
+            repeatMode = Player.REPEAT_MODE_ONE
+            // Stream: no auto-captions over Shorts
+            trackSelectionParameters = trackSelectionParameters.buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                .build()
+            setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                    .build(),
+                true
+            )
+        }
 
     private fun releasePlayer() {
         currentView?.player = null
@@ -264,6 +278,11 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
         player?.removeListener(playerListener)
         player?.release()
         player = null
+        nextDisposable?.dispose()
+        nextPlayer?.release()
+        nextPlayer = null
+        nextPosition = -1
+        nextInfo = null
         resolver = null
         currentInfo = null
     }
@@ -314,6 +333,35 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
         currentInfo = null
         userPaused = false
         loadDisposable?.dispose()
+        holder.b.shortError.isVisible = false
+        holder.b.shortPauseIcon.isVisible = false
+
+        // Stream: the Short was already buffered in the second player: swap and play at once
+        val preloaded = nextPlayer
+        val preloadedInfo = nextInfo
+        if (preloaded != null && preloadedInfo != null && nextPosition == position &&
+            preloadedInfo.url == item.url
+        ) {
+            p.removeListener(playerListener)
+            p.stop()
+            p.clearMediaItems()
+            nextPlayer = p
+            nextPosition = -1
+            nextInfo = null
+            player = preloaded
+            preloaded.addListener(playerListener)
+            StyledPlayerView.switchTargetView(preloaded, currentView, holder.b.shortPlayerView)
+            currentView = holder.b.shortPlayerView
+            currentInfo = preloadedInfo
+            holder.b.shortLoading.isVisible = preloaded.playbackState == Player.STATE_BUFFERING
+            preloaded.seekTo(0)
+            preloaded.playWhenReady = isResumed
+            recordWatched(preloadedInfo)
+            preloadNext(position + 1)
+            prefetch(position + 2)
+            return
+        }
+
         p.stop()
         p.clearMediaItems()
 
@@ -321,8 +369,6 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
         currentView = holder.b.shortPlayerView
         holder.b.shortThumb.isVisible = true
         holder.b.shortLoading.isVisible = true
-        holder.b.shortError.isVisible = false
-        holder.b.shortPauseIcon.isVisible = false
 
         loadDisposable = ExtractorHelper.getStreamInfo(requireContext(), item.serviceId, item.url, false)
             .subscribeOn(Schedulers.io())
@@ -344,8 +390,32 @@ class ShortsPagerFragment : Fragment(), ShortsPageAdapter.Callbacks {
                 if (currentPosition == position) showError(position)
             })
 
-        prefetch(position + 1)
+        preloadNext(position + 1)
         prefetch(position + 2)
+    }
+
+    /** Stream: loads and buffers the Short at [position] in the second, paused player. */
+    private fun preloadNext(position: Int) {
+        if (position !in 0 until adapter.itemCount) return
+        if (nextPosition == position && nextInfo != null) return
+        val item = adapter.itemAt(position)
+        val next = nextPlayer ?: buildPlayer().also { nextPlayer = it }
+        nextDisposable?.dispose()
+        next.stop()
+        next.clearMediaItems()
+        nextPosition = position
+        nextInfo = null
+        nextDisposable = ExtractorHelper.getStreamInfo(requireContext(), item.serviceId, item.url, false)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ info ->
+                if (nextPosition != position || nextPlayer !== next) return@subscribe
+                val source = resolver?.resolve(info) ?: return@subscribe
+                next.setMediaSource(source)
+                next.playWhenReady = false
+                next.prepare()
+                nextInfo = info
+            }, { e -> Log.w(TAG, "Could not preload short ${item.url}", e) })
     }
 
     /** Fetches (and caches) the next Short's data so the next swipe starts quickly. */

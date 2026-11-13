@@ -1,4 +1,5 @@
-<!-- Stream: Shorts icon (solid portrait card with a play cut-out) -->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stream: Claude-style line icon (rounded 1.8 strokes; shape based on Lucide, ISC licence) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -6,7 +7,17 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
     <path
-        android:fillColor="#FF000000"
-        android:fillType="evenOdd"
-        android:pathData="M9,2h6a4,4 0,0 1,4 4v12a4,4 0,0 1,-4 4H9a4,4 0,0 1,-4 -4V6A4,4 0,0 1,9 2zM10.2,8.3v7.4a0.5,0.5 0,0 0,0.77 0.42l5.6,-3.7a0.5,0.5 0,0 0,0 -0.84l-5.6,-3.7a0.5,0.5 0,0 0,-0.77 0.42z" />
+        android:fillColor="#00000000"
+        android:pathData="M8.5,2.5h7a3,3 0,0 1,3 3v13a3,3 0,0 1,-3 3h-7a3,3 0,0 1,-3 -3v-13a3,3 0,0 1,3 -3z"
+        android:strokeWidth="1.8"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M10.5,9.3v5.4l4.2,-2.7z"
+        android:strokeWidth="1.8"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 </vector>

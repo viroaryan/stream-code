@@ -10,6 +10,7 @@ import android.util.Log
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 import org.schabi.newpipe.database.feed.dao.FeedDAO
 import org.schabi.newpipe.database.feed.model.FeedGroupEntity
@@ -38,7 +39,10 @@ object StreamPulse {
     private val YOUTUBE = ServiceList.YouTube.serviceId
 
     private const val RELATED_SEEDS = 6
-    private const val PARALLEL = 5
+    private const val PARALLEL = 16
+
+    /** Stream: a slow source never holds the feed back longer than this. */
+    private const val SOURCE_TIMEOUT_MS = 3500L
     private const val SEARCH_FILTER = "all"
 
     /** Broad topics used to discover new things, and to fill the feed of a brand-new user. */
@@ -317,7 +321,11 @@ object StreamPulse {
 
     /** Runs the sources in parallel and merges candidates that more than one source suggested. */
     private fun gather(sources: List<Single<List<Candidate>>>): Single<Collection<Candidate>> = Flowable.fromIterable(sources)
-        .flatMapSingle({ it }, false, PARALLEL)
+        .flatMapSingle({ source ->
+            source.subscribeOn(Schedulers.io())
+                .timeout(SOURCE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .onErrorReturnItem(emptyList())
+        }, false, PARALLEL)
         .toList()
         .map { lists ->
             val merged = LinkedHashMap<String, Candidate>()

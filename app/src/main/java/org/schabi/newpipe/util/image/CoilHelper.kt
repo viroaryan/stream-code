@@ -9,6 +9,7 @@ import coil3.executeBlocking
 import coil3.imageLoader
 import coil3.request.Disposable
 import coil3.request.ImageRequest
+import coil3.request.crossfade
 import coil3.request.error
 import coil3.request.placeholder
 import coil3.request.target
@@ -202,17 +203,43 @@ object CoilHelper {
         isShort: Boolean,
         fallback: List<Image>
     ) {
+        loadHd(target, videoUrl, isShort) { loadThumbnail(target, fallback) }
+    }
+
+    /** Same as [loadHdThumbnail], with the fallback thumbnail given as a URL. */
+    fun loadHdThumbnail(
+        target: ImageView,
+        videoUrl: String?,
+        isShort: Boolean,
+        fallbackUrl: String?
+    ) {
+        loadHd(target, videoUrl, isShort) { loadThumbnail(target, fallbackUrl) }
+    }
+
+    private fun loadHd(
+        target: ImageView,
+        videoUrl: String?,
+        isShort: Boolean,
+        fallback: () -> Unit
+    ) {
         val id = videoUrl?.let { YOUTUBE_ID.find(it)?.groupValues?.get(1) }
         if (id == null || !ImageStrategy.shouldLoadImages()) {
-            loadThumbnail(target, fallback)
+            fallback()
             return
         }
         val hdUrl = "https://i.ytimg.com/vi/$id/" + if (isShort) "oar2.jpg" else "hq720.jpg"
         val request = ImageRequest.Builder(target.context)
             .data(hdUrl)
+            .memoryCacheKey(hdUrl)
+            .diskCacheKey(hdUrl)
+            // a recycled card never shows the previous video's picture
+            .placeholder(R.drawable.placeholder_thumbnail_video)
+            .crossfade(HD_CROSSFADE_MS)
             .target(target)
-            .listener(onError = { _, _ -> loadThumbnail(target, fallback) })
+            .listener(onError = { _, _ -> fallback() })
             .build()
         target.context.imageLoader.enqueue(request)
     }
+
+    private const val HD_CROSSFADE_MS = 120
 }
